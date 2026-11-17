@@ -46,33 +46,45 @@ class Fuente(ABC):
     def buscar(self, consulta: str, n: int = 10) -> list[Articulo]:
         """Devuelve como mucho `n` artículos que coinciden con `consulta`."""
 
-    def _get_json(
+    def _get(
         self,
         url: str,
         params: Mapping[str, Any] | None = None,
         headers: Mapping[str, str] | None = None,
-    ) -> Any:
-        """GET con reintentos. Lanza httpx.HTTPStatusError o httpx.TransportError si se agotan."""
+    ) -> httpx.Response:
+        """GET with retries. Returns the raw response after status checks.
+
+        Raises httpx.HTTPStatusError or httpx.TransportError when retries run out.
+        """
         for intento in range(self.max_retries + 1):
             ultimo = intento == self.max_retries
             try:
                 respuesta = self.client.get(url, params=params, headers=headers)
-            except httpx.TransportError:  # timeout, conexión rechazada, DNS...
+            except httpx.TransportError:  # timeout, connection refused, DNS...
                 if ultimo:
                     raise
                 espera = self._espera_exponencial(intento)
             else:
                 if respuesta.status_code not in ESTADOS_REINTENTABLES or ultimo:
                     respuesta.raise_for_status()
-                    return respuesta.json()
+                    return respuesta
                 espera = self._espera_retry_after(respuesta)
                 if espera is None:
                     espera = self._espera_exponencial(intento)
                 if espera > self.max_wait:
-                    # p. ej. presupuesto diario agotado: no tiene sentido esperar horas.
+                    # e.g. daily budget exhausted: waiting for hours is pointless.
                     respuesta.raise_for_status()
             self._sleep(espera)
-        raise AssertionError("inalcanzable")
+        raise AssertionError("unreachable")
+
+    def _get_json(
+        self,
+        url: str,
+        params: Mapping[str, Any] | None = None,
+        headers: Mapping[str, str] | None = None,
+    ) -> Any:
+        """GET with retries and JSON decoding."""
+        return self._get(url, params=params, headers=headers).json()
 
     def _espera_exponencial(self, intento: int) -> float:
         return self.backoff * 2**intento

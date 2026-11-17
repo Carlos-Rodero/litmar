@@ -55,9 +55,11 @@ class FuenteDePrueba(Fuente):
         return self._get_json("https://ejemplo.org/api", params={"q": consulta})
 
 
-def fuente_de_prueba(*respuestas, **kwargs):
+def fuente_de_prueba(*respuestas, peticiones=None, **kwargs):
     esperas = []
-    fuente = FuenteDePrueba(client=cliente(*respuestas), sleep=esperas.append, **kwargs)
+    fuente = FuenteDePrueba(
+        client=cliente(*respuestas, peticiones=peticiones), sleep=esperas.append, **kwargs
+    )
     return fuente, esperas
 
 
@@ -126,6 +128,75 @@ def test_retry_after_como_fecha_pasada_no_espera():
     )
     assert fuente.buscar("x") == {"ok": True}
     assert esperas == [0.0]
+
+
+def test_get_json_returns_parsed_dict_without_waiting():
+    fuente, esperas = fuente_de_prueba({"ok": True})
+    assert fuente.buscar("x") == {"ok": True}
+    assert esperas == []
+
+
+def test_get_json_propagates_invalid_json_without_retrying():
+    fuente, esperas = fuente_de_prueba(httpx.Response(200, text="not-json"))
+    with pytest.raises(json.JSONDecodeError):
+        fuente.buscar("x")
+    assert esperas == []
+
+
+def test_get_json_forwards_params_and_headers():
+    peticiones = []
+    fuente, esperas = fuente_de_prueba({"ok": True}, peticiones=peticiones)
+    fuente._get_json("https://ejemplo.org/api", params={"q": "x"}, headers={"X-Test": "1"})
+    (peticion,) = peticiones
+    assert peticion.url.params["q"] == "x"
+    assert peticion.headers["x-test"] == "1"
+    assert esperas == []
+
+
+def test_get_returns_raw_response_and_forwards_params_and_headers():
+    peticiones = []
+    fuente, esperas = fuente_de_prueba({"ok": True}, peticiones=peticiones)
+    respuesta = fuente._get("https://ejemplo.org/api", params={"q": "x"}, headers={"X-Test": "1"})
+    assert isinstance(respuesta, httpx.Response)
+    assert respuesta.status_code == 200
+    assert respuesta.json() == {"ok": True}
+    (peticion,) = peticiones
+    assert peticion.url.params["q"] == "x"
+    assert peticion.headers["x-test"] == "1"
+    assert esperas == []
+
+
+def test_get_retries_429_and_returns_raw_response():
+    peticiones = []
+    esperas = []
+    fuente = FuenteDePrueba(
+        client=cliente(httpx.Response(429), {"ok": True}, peticiones=peticiones),
+        sleep=esperas.append,
+    )
+    respuesta = fuente._get("https://ejemplo.org/api")
+    assert respuesta.json() == {"ok": True}
+    assert len(peticiones) == 2
+    assert esperas == [1.0]
+
+
+def test_get_exhausts_retries_and_raises_status_error():
+    fuente, esperas = fuente_de_prueba(*[httpx.Response(503)] * 3, max_retries=2)
+    with pytest.raises(httpx.HTTPStatusError):
+        fuente._get("https://ejemplo.org/api")
+    assert len(esperas) == 2
+
+
+def test_close_only_closes_owned_client():
+    propia = FuenteDePrueba()  # no client injected: Fuente creates and owns it
+    owned_client = propia.client
+    propia.close()
+    assert owned_client.is_closed
+
+    borrowed_client = cliente({"ok": True})
+    prestada = FuenteDePrueba(client=borrowed_client)
+    prestada.close()
+    assert not borrowed_client.is_closed
+    borrowed_client.close()
 
 
 # --- OpenAlex -----------------------------------------------------------------
