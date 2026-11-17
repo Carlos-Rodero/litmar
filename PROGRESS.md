@@ -9,11 +9,12 @@ el registro solo crece (entradas nuevas arriba).
 _Actualizado: 2026-11-17._
 
 - **`main`**: al día con `origin/main`. Último trabajo: la CLI de la demo de la
-  Clase 1 (`--fuente`, `--desde`, `--bibtex`, tabla) y ruff.
+  Clase 1 (`--fuente`, `--desde`, `--bibtex`, tabla), ruff, y las diapositivas
+  de la Clase 2 en `docs/Clase2.pdf`.
 - **Curso**: Clase 1 (*Busca*, 17/11/2026) completa respecto a las
-  diapositivas. La siguiente es la Clase 2 (*Lee*: LLM con Gemini, LangGraph,
-  agente), prevista para el **18/11/2026**; aún no hay diapositivas suyas en
-  `docs/`. Ver `AGENTS.md` §2.
+  diapositivas. La siguiente es la Clase 2 (*Lee*), el **18/11/2026**; sus
+  diapositivas están en `docs/Clase2.pdf` y su plan, abajo. **Nada de la Clase 2
+  está empezado.**
 - **Calidad**: 204 tests pasan, sin red, en menos de 1 s; `ruff check` y
   `ruff format --check` en verde.
 - **PRs abiertas**: ninguna.
@@ -38,12 +39,12 @@ Por orden de prioridad sugerido; nada está empezado.
    empezar no llegó el bloque «Memoria del proyecto (hook SessionStart…)»,
    revisar con `/hooks` que `.claude/settings.json` los carga, y anotar el
    resultado aquí.
-1. [ ] **Preparar la Clase 2**: `GEMINI_API_KEY` en `.env.example` (las
-   diapositivas lo piden para la clase siguiente). Las diapositivas usan también
-   `LITMAR_EMAIL`; aquí la variable equivalente es `CROSSREF_MAILTO`: **el
-   usuario debe decidir** si se renombra. Cuando lleguen las diapositivas de la
-   Clase 2, leerlas y planificar con el usuario (resúmenes con LLM, LangGraph,
-   agente) antes de escribir código.
+1. [ ] **Clase 2**: seguir el «Plan de la Clase 2» (abajo). **Antes de nada,
+   preguntar al usuario** si quiere construirlo ya (como ensayo, igual que se
+   hizo con la Clase 1 lanzando los prompts de las diapositivas en estas
+   sesiones) o dejarlo para hacerlo en directo en clase. Primer paso en
+   cualquier caso: añadir a `.env.example` `LITMAR_MODELO`, `GOOGLE_API_KEY` y
+   `ANTHROPIC_API_KEY` (D-14).
 2. [ ] **Permisos del JSON**: `Biblioteca.guardar` deja `0600`; aplicar la umask
    con `os.chmod` antes de `os.replace`. Propuesto en la PR #10.
 3. [ ] **Mover el helper `cliente` de `tests/test_fuentes.py` a `conftest.py`**,
@@ -53,6 +54,61 @@ Por orden de prioridad sugerido; nada está empezado.
    el campo en `ui.py`.
 6. [ ] **Ideas para la UI** (sin pedir aún): guardar/cargar la biblioteca JSON,
    filtrar u ordenar resultados, mostrar de qué fuente viene cada artículo.
+
+## Plan de la Clase 2 (de `docs/Clase2.pdf`)
+
+Los encargos que se lanzan «en directo», en orden. Cada uno trae en la
+diapositiva una columna «En qué fijarse»: el resultado debe superarla. Consultar
+la documentación actual de LangChain, LangGraph y deepagents antes de programar
+(cambian rápido) y proponer plan antes de código.
+
+1. [ ] **`.env`** (diapositiva 4): `LITMAR_MODELO=google_genai:gemini-3.8-flash`
+   + `GOOGLE_API_KEY`, o `anthropic:claude-sonnet-5-5` + `ANTHROPIC_API_KEY`. El
+   plan gratuito de Gemini tiene límites por minuto (429) y Google puede usar lo
+   enviado: solo datos públicos.
+2. [ ] **Resumen estructurado**: `resumir(articulo, pregunta, modelo)` → objeto
+   Pydantic `ResumenArticulo` (objetivo, método, hallazgos, relevancia 1-5
+   respecto a la pregunta, limitaciones) con `with_structured_output`. Cada
+   campo con descripción (el modelo la lee). Sin resumen → no llamar al modelo.
+   Test con modelo falso, sin clave ni red.
+3. [ ] **Modelo intercambiable**: `src/litmar/llm.py` con `crear_modelo()` que lee
+   `LITMAR_MODELO` y usa `init_chat_model`; límite de llamadas por minuto para el
+   plan gratuito; si falta la clave, error claro que diga qué poner en el `.env`.
+   Ningún nombre de modelo ni clave en el código; cambiar de modelo = cambiar el
+   `.env`.
+4. [ ] **Práctica 1** de los alumnos: `ejemplos/resumir.py` (busca 3 artículos y
+   los resume). Puede convenir tenerlo hecho como referencia.
+5. [ ] **Flujo LangGraph** (`src/litmar/flujo.py`): estado `TypedDict`
+   (`EstadoRevision`: pregunta, artículos, resúmenes, informe…); nodos
+   `planificar` (LLM: pregunta → 2-3 búsquedas), `buscar` y `filtrar` (código:
+   fuentes y Biblioteca; con resumen, sin duplicados, los N mejores),
+   `resumir_articulos` (con `resumir()`), `sintetizar` (LLM, cita por DOI) y
+   `verificar_citas` (código: cada DOI citado está entre los seleccionados; si
+   no, vuelve a `sintetizar`, máximo 2 veces). Comando `litmar revisar
+   "pregunta" --modo flujo` que muestra cada paso (ver demo, diapositiva 21) y
+   guarda el informe y el BibTeX de lo citado. Primero plan y diagrama Mermaid.
+6. [ ] **Herramientas** (`src/litmar/herramientas.py`): `buscar_articulos(consulta,
+   fuente, n)` (reutiliza `crear_fuente`) y `listar_fuentes` (usa
+   `fuentes_disponibles`), con `@tool` de LangChain. Máximo 10 en el código;
+   errores como mensaje; devuelven título, año, DOI, citas y resumen recortado;
+   docstrings pensados para el modelo; avisar de que PANGAEA da datos, no
+   artículos. Tests sin red.
+7. [ ] **Votación en clase** (una de tres): Zotero por MCP
+   (`github.com/Sapere-IA/zotero-mcp`, solo herramientas de lectura, arranque en
+   el `.env`; el MCP solo para PDFs y notas, sin duplicar la búsqueda), Semantic
+   Scholar como herramienta de citas, o una fuente de CSV/BD local del grupo.
+8. [ ] **Agente con Deep Agents**: `litmar revisar … --modo agente` con
+   `create_deep_agent` y `herramientas.py`; instrucciones: planificar con lista
+   de tareas, buscar en varias fuentes, citar solo DOIs que den las herramientas
+   y decir lo que no encontró. Mismo formato de informe y BibTeX que el flujo.
+   Subagente buscador. `--aprobar` con `interrupt_on` para pedir permiso antes de
+   buscar. Límite de pasos (si se alcanza, escribir hasta dónde llegó) con test de
+   modelo falso.
+9. [ ] **Pestaña «Revisión» en la UI**: pregunta, modo flujo/agente, fuentes y
+   número de artículos; pasos en vivo; informe con los DOI como enlaces; mensaje
+   claro si falta la clave. Reutilizar las funciones de revisión (refactor
+   mínimo si imprimen por pantalla) sin romper la terminal.
+10. [ ] **Para la Clase 3**: los alumnos deben comprobar `docker run hello-world`.
 
 ## Cabos sueltos
 
@@ -78,6 +134,15 @@ contra esto.
   proponer su hook `_antes_de_peticion` en `Fuente`.
 
 ## Registro de sesiones
+
+### 2026-11-17 — Sesión 1 (cierre 2): diapositivas de la Clase 2
+
+- El usuario añadió `docs/Clase2.pdf`. De ella salen: el «Plan de la Clase 2»
+  de este fichero, la hoja de ruta y los principios de `AGENTS.md` §2, y D-14
+  (variables `LITMAR_MODELO` + clave del proveedor; `CROSSREF_MAILTO` se queda),
+  que resuelve la duda pendiente sobre `LITMAR_EMAIL`.
+- No se ha escrito código de la Clase 2. Queda por preguntar al usuario si se
+  construye ya o en directo en clase.
 
 ### 2026-11-17 — Sesión 1 (cierre): memoria lista para la siguiente sesión
 

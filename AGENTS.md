@@ -103,7 +103,7 @@ con una interfaz web (`litmar ui`, Streamlit).
 litmar es el proyecto que se construye en directo en el curso **«Python avanzado
 para proyectos robustos, colaborativos y reproducibles»** (Institut de Ciències
 del Mar, tres clases, imparte Roberto Bada). Las diapositivas están en `docs/`
-(`docs/Clase1.pdf`). Consecuencias:
+(`docs/Clase1.pdf`, `docs/Clase2.pdf`). Consecuencias:
 
 - **Los colaboradores son alumnos.** Hacen fork, trabajan en una rama y mandan
   PRs al repositorio del curso; el mantenedor integra algunas. Al revisarlas:
@@ -113,16 +113,26 @@ del Mar, tres clases, imparte Roberto Bada). Las diapositivas están en `docs/`
 - **Hoja de ruta del curso** (lo que viene; detalle en `PROGRESS.md`):
   - Clase 1 · *Busca* (17/11/2026, según la portada): fuentes, biblioteca, CLI,
     UI Streamlit, `.env`, tests, calidad con ruff. **Completa.**
-  - Clase 2 · *Lee* (al día siguiente, 18/11/2026, según la última diapositiva):
-    un LLM (Gemini; clave gratuita de aistudio.google.com en `GEMINI_API_KEY`)
-    hace resúmenes estructurados de cada artículo (mensajes, contexto y coste);
-    un flujo LangGraph que diseñamos: buscar → filtrar → resumir → sintetizar; y
-    el mismo asistente como agente (Deep Agents) que planifica, delega y cita
-    solo lo que encuentra.
-  - Clase 3 · *Se comparte* (previsiblemente 19/11/2026: el curso son «tres
-    días»): API con FastAPI y empaquetado con Docker.
-  - Aún no hay diapositivas de las clases 2 y 3. Cuando aparezcan en `docs/`,
+  - Clase 2 · *Lee* (18/11/2026, `docs/Clase2.pdf`): resúmenes estructurados
+    con un LLM (Pydantic + `with_structured_output`), modelo intercambiable con
+    LangChain (`init_chat_model`, configurado en `LITMAR_MODELO`), un flujo
+    LangGraph de revisión con verificación de citas por código, las fuentes como
+    herramientas, un agente con Deep Agents (`--modo agente`, subagente buscador,
+    aprobación humana) y una pestaña «Revisión» en la UI. Objetivo del día: «le
+    haces a litmar una pregunta de investigación y te devuelve un informe que
+    solo cita artículos reales, más el BibTeX de lo citado». El plan detallado,
+    con los prompts y lo que se comprueba, está en `PROGRESS.md` («Plan de la
+    Clase 2»).
+  - Clase 3 · *Se comparte* (previsiblemente 19/11/2026: «mañana» en la última
+    diapositiva de la Clase 2): exponer `buscar` y `revisar` con FastAPI y
+    empaquetar con Docker. Aún no hay diapositivas: cuando aparezcan en `docs/`,
     léelas antes de empezar y vuelca lo relevante aquí y en `PROGRESS.md`.
+  - **Principios de la Clase 2** que el código debe respetar: lo que se pueda
+    hacer o verificar con código no se le deja al modelo (p. ej. comprobar que
+    cada DOI citado está entre los seleccionados); flujo antes que agente; límites
+    en el código (máximo de resultados, de reintentos y de pasos); errores de
+    herramientas como texto, no excepciones; nada de nombres de modelo ni claves
+    en el código; tests con modelos falsos, sin clave ni red.
   - Las librerías de la Clase 2 (SDK de Gemini, LangGraph, Deep Agents) cambian
     rápido: consulta su documentación actual antes de escribir código.
 - **Arquitectura que el curso enseña** y hay que respetar: lógica (modelos,

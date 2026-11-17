@@ -78,3 +78,11 @@ todas es un error (código 1, no se guarda nada); si falla alguna, solo un aviso
 Lo enseña la Clase 1. 100 en lugar de 88 porque el código ya estaba escrito así y
 evita partir líneas sin ganar legibilidad. Al adoptarlo se formateó todo el
 proyecto de una vez, en el mismo commit que `--fuente`/`--desde`.
+
+### D-14 · Variables del LLM: `LITMAR_MODELO` + clave del proveedor; se mantiene `CROSSREF_MAILTO` — 2026-11-17
+Lo fijan las diapositivas de la Clase 2: `LITMAR_MODELO=proveedor:modelo` (p. ej.
+`google_genai:gemini-3.8-flash` o `anthropic:claude-sonnet-5-5`) y la clave con
+el nombre estándar de cada proveedor (`GOOGLE_API_KEY`, `ANTHROPIC_API_KEY`),
+que es el que leen las librerías de LangChain. Sustituye a la idea de
+`GEMINI_API_KEY` de la Clase 1. Las diapositivas también nombran
+`CROSSREF_MAILTO`, así que no se renombra a `LITMAR_EMAIL`.
