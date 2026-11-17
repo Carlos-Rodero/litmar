@@ -15,7 +15,7 @@ class FuenteFalsa(Fuente):
         self.articulos = list(articulos)
         self.error = error
 
-    def buscar(self, consulta, n=10):
+    def buscar(self, consulta, n=10, *, desde=None):
         if self.error:
             raise self.error
         return self.articulos[:n]

@@ -1,7 +1,7 @@
 import pytest
 
 from litmar.configuracion import FUENTES, crear_fuente, fuentes_disponibles
-from litmar.fuentes import Arxiv, Crossref, EuropePMC, OpenAlex, Pangaea, Zotero
+from litmar.fuentes import Arxiv, Crossref, EuropePMC, OpenAlex, Pangaea
 
 
 def test_sin_configuracion_estan_todas_menos_zotero():
@@ -21,8 +21,13 @@ def test_variables_vacias_cuentan_como_ausentes():
 
 @pytest.mark.parametrize(
     ("nombre", "clase"),
-    [("OpenAlex", OpenAlex), ("Crossref", Crossref), ("Europe PMC", EuropePMC),
-     ("arXiv", Arxiv), ("PANGAEA", Pangaea)],
+    [
+        ("OpenAlex", OpenAlex),
+        ("Crossref", Crossref),
+        ("Europe PMC", EuropePMC),
+        ("arXiv", Arxiv),
+        ("PANGAEA", Pangaea),
+    ],
 )
 def test_crea_cada_fuente(nombre, clase):
     with crear_fuente(nombre, {}) as fuente:

@@ -61,9 +61,14 @@ su boletín: es opcional y basta con pulsar Intro para saltarlo.
 
 ## Línea de comandos
 
-La CLI busca en OpenAlex.
-
 ```bash
+# Buscar en OpenAlex (la fuente por defecto) y ver una tabla de resultados
+uv run litmar buscar "microplastics Mediterranean" --n 5
+
+# Varias fuentes, solo desde 2020, y exportar directamente a BibTeX
+uv run litmar buscar "posidonia carbon" --fuente openalex,europepmc \
+    --desde 2020 --bibtex refs.bib
+
 # Consultar hasta 30 artículos y guardar todos sus metadatos
 uv run litmar buscar "machine learning" -n 30 --guardar biblioteca.json
 
@@ -79,10 +84,24 @@ uv run litmar exportar biblioteca.json --bibtex referencias.bib
   el artículo original.
 - **Guardado seguro:** el JSON se reemplaza de forma atómica. Un JSON inválido se
   rechaza sin sobrescribirlo.
-- **Sin `--guardar`:** la búsqueda muestra en la terminal las citas, los títulos
-  y los enlaces DOI.
-- **`-n`:** es el máximo de artículos válidos. Puede haber menos si no hay
-  suficientes resultados con DOI, título, año y autores.
+- **Salida:** una tabla con año, citas, autores y título, ajustada al ancho de
+  la terminal:
+  ```
+  AÑO   CITAS  AUTORES            TÍTULO
+  2012    698  Collignon et al.   Neustonic microplastic and zooplankton in the North…
+  2015    438  Fossi et al.       Fin whales and microplastics: The Mediterranean Sea…
+  ```
+- **`--fuente`:** una o varias, separadas por comas: `openalex` (por defecto),
+  `crossref`, `europepmc`, `arxiv`, `pangaea` y `zotero`. Los resultados se
+  juntan sin duplicar DOI. Si una fuente falla, se avisa y se sigue con las demás;
+  si fallan todas, es un error y no se guarda nada.
+- **`-n` / `--n`:** máximo de artículos válidos **por fuente**. Puede haber menos
+  si no hay suficientes resultados con DOI, título, año y autores.
+- **`--desde AÑO`:** solo artículos publicados ese año o después. Se pide como
+  filtro a cada API (salvo Zotero, que no lo admite) y además se comprueba el año
+  de cada resultado.
+- **`--bibtex`:** exporta los resultados de esa búsqueda. Para exportar una
+  biblioteca acumulada con `--guardar`, usa `litmar exportar`.
 - **Exportar:** la exportación reemplaza el fichero BibTeX de destino si ya
   existe.
 - **Códigos de salida:** los errores operativos (red, HTTP, ficheros) devuelven
@@ -190,8 +209,8 @@ Búsqueda dentro de una biblioteca de Zotero, personal o de grupo, con la API we
 v3.
 
 ```python
-Zotero(user_id=123456)                    # biblioteca personal pública
-Zotero(group_id=7890, api_key="...")      # biblioteca de grupo privada
+Zotero(user_id=123456)  # biblioteca personal pública
+Zotero(group_id=7890, api_key="...")  # biblioteca de grupo privada
 ```
 
 - **Identificador:** hay que indicar exactamente uno de `user_id` o `group_id`.
@@ -226,6 +245,8 @@ los artículos.
 
 ```bash
 uv run pytest
+uv run ruff check        # errores típicos e imports (con --fix los corrige)
+uv run ruff format       # formato común para todo el código
 ```
 
 Los tests no usan la red ni necesitan claves:

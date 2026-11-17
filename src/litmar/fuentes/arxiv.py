@@ -39,7 +39,7 @@ class Arxiv(Fuente):
         super().__init__(**kwargs)
         self.request_delay = request_delay
 
-    def buscar(self, consulta: str, n: int = 10) -> list[Articulo]:
+    def buscar(self, consulta: str, n: int = 10, *, desde: int | None = None) -> list[Articulo]:
         if n < 1:
             raise ValueError("n must be at least 1")
         page_size = min(n, self.MAX_RESULTS)
@@ -51,7 +51,7 @@ class Arxiv(Fuente):
             response = self._get(
                 self.BASE_URL,
                 params={
-                    "search_query": _search_query(consulta),
+                    "search_query": _search_query(consulta, desde),
                     "start": start,
                     "max_results": page_size,
                     "sortBy": "relevance",
@@ -62,7 +62,7 @@ class Arxiv(Fuente):
             _raise_for_api_error(entries)
             for entry in entries:
                 article = to_article(entry)
-                if article is not None:
+                if self._admite(article, desde):
                     articles.append(article)
                     if len(articles) == n:
                         break
@@ -72,11 +72,14 @@ class Arxiv(Fuente):
         return articles
 
 
-def _search_query(consulta: str) -> str:
+def _search_query(consulta: str, desde: int | None = None) -> str:
     text = consulta.strip()
-    if _FIELD_PREFIX.search(text) or _BOOLEAN.search(text):
-        return text
-    return f"all:{text}"
+    if not (_FIELD_PREFIX.search(text) or _BOOLEAN.search(text)):
+        text = f"all:{text}"
+    if desde is not None:
+        # Fecha de la primera versión; el año del artículo se comprueba aparte.
+        text = f"({text}) AND submittedDate:[{desde}01010000 TO 999912312359]"
+    return text
 
 
 def _raise_for_api_error(entries: list[Element]) -> None:
@@ -93,9 +96,7 @@ def to_article(entry: Element) -> Articulo | None:
     title = _text(entry, f"{ATOM}title")
     year = _year(_text(entry, f"{ATOM}published"))
     authors = [
-        name
-        for author in entry.findall(f"{ATOM}author")
-        if (name := _text(author, f"{ATOM}name"))
+        name for author in entry.findall(f"{ATOM}author") if (name := _text(author, f"{ATOM}name"))
     ]
     doi = _doi(entry)
     if not (title and year and authors and doi):

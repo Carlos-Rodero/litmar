@@ -123,9 +123,12 @@ del Mar, tres clases, imparte Roberto Bada). Las diapositivas están en `docs/`
 ## 3. Comandos
 
 ```bash
-uv sync                          # instala todo, incluido el grupo dev (pytest, streamlit)
-uv run pytest                    # tests (sin red; ~181, menos de 1 s)
+uv sync                          # instala todo, incluido el grupo dev (pytest, ruff, streamlit)
+uv run pytest                    # tests (sin red; ~204, menos de 1 s)
+uv run ruff check --fix          # lint (reglas E, W, F, I, UP, B; línea de 100)
+uv run ruff format               # formato
 uv run litmar --help             # CLI
+uv run litmar buscar "posidonia carbon" --fuente openalex,europepmc --desde 2020 --bibtex refs.bib
 uv run litmar buscar "consulta" -n 10 --guardar biblioteca.json
 uv run litmar exportar biblioteca.json --bibtex refs.bib
 uv run litmar ui                 # interfaz web (Streamlit)
@@ -146,13 +149,16 @@ src/litmar/
   articulo.py        Articulo (dataclass frozen+slots), normalizar_doi, apellido
   biblioteca.py      Biblioteca: dedup por DOI, a_bibtex/exportar_bibtex, a_csv,
                      guardar/cargar JSON (guardado atómico, carga con validación)
-  cli.py             argparse: buscar (solo OpenAlex), exportar, ui
-  configuracion.py   FUENTES, fuentes_disponibles(), crear_fuente(nombre):
-                     crea cada fuente con sus variables de entorno
-  ui.py              Streamlit: buscar(), filas(), app()
+  busqueda.py        buscar_en_fuentes(): busca en varias fuentes, junta sin
+                     duplicar y recoge errores por fuente. La usan CLI y UI
+  cli.py             argparse: buscar (--fuente, --desde, --guardar, --bibtex,
+                     salida en tabla), exportar, ui
+  configuracion.py   FUENTES, fuentes_disponibles(), crear_fuente(nombre),
+                     id_fuente()/nombre_fuente() («Europe PMC» ↔ «europepmc»)
+  ui.py              Streamlit: filas(), app()
   fuentes/
-    base.py          Fuente (ABC): buscar(consulta, n) abstracto; _get/_get_json
-                     con reintentos; context manager
+    base.py          Fuente (ABC): buscar(consulta, n, *, desde=None) abstracto;
+                     _admite (validez + año); _get/_get_json con reintentos
     openalex.py crossref.py europepmc.py arxiv.py pangaea.py zotero.py
 docs/                diapositivas del curso (PDF)
 tests/
@@ -180,22 +186,27 @@ tests/
 
 ## 6. Fuentes
 
-Todas heredan de `Fuente` y hacen sus peticiones con `self._get` / `self._get_json`
-(nunca `self.client.get` directo: se perderían los reintentos). Reintentos ante
+Todas heredan de `Fuente`, implementan `buscar(consulta, n, *, desde=None)` y
+hacen sus peticiones con `self._get` / `self._get_json` (nunca `self.client.get`
+directo: se perderían los reintentos). `desde` se envía como filtro a la API
+cuando existe y, además, cada resultado pasa por `self._admite(articulo, desde)`,
+que descarta los inválidos y los anteriores a ese año: así se devuelven `n`
+artículos aunque la API interprete la fecha de otra forma. Reintentos ante
 errores de red, 429 y 5xx, con espera exponencial (`backoff`), `Retry-After`
 (segundos o fecha HTTP) y `max_wait` (si el servidor pide esperar más, se falla).
 
 | Fuente (nombre en UI) | Clase | Clave / configuración | Notas |
 | --- | --- | --- | --- |
-| OpenAlex | `OpenAlex` | `OPENALEX_API_KEY` opcional (Bearer) | `per_page` ≤ 100; `page × per_page` ≤ 10 000; el resumen se reconstruye de `abstract_inverted_index` |
-| Crossref | `Crossref` | `CROSSREF_MAILTO` opcional (polite pool) | solo `journal-article`; paginación por cursor con orden explícito |
-| Europe PMC | `EuropePMC` | ninguna | paginación `cursorMark` |
-| arXiv | `Arxiv` | ninguna | Atom XML; 3 s entre páginas; DOI de respaldo `10.48550/arXiv.<id>` |
-| PANGAEA | `Pangaea` | ninguna | datasets; `journal="PANGAEA"`, `citations=0`; Elasticsearch ≤ 10 000 |
-| Zotero | `Zotero` | `ZOTERO_USER_ID` **o** `ZOTERO_GROUP_ID` (+ `ZOTERO_API_KEY` si es privada) | `citations=0`; sin id no aparece en la UI |
+| OpenAlex | `OpenAlex` | `OPENALEX_API_KEY` opcional (Bearer) | `per_page` ≤ 100; `page × per_page` ≤ 10 000; el resumen se reconstruye de `abstract_inverted_index`. `desde`: `filter=publication_year:>AÑO-1` |
+| Crossref | `Crossref` | `CROSSREF_MAILTO` opcional (polite pool) | solo `journal-article`; paginación por cursor con orden explícito. `desde`: `from-pub-date:AÑO` |
+| Europe PMC | `EuropePMC` | ninguna | paginación `cursorMark`; por defecto da prioridad a lo reciente. `desde`: `AND (PUB_YEAR:[AÑO TO 9999])` |
+| arXiv | `Arxiv` | ninguna | Atom XML; 3 s entre páginas; DOI de respaldo `10.48550/arXiv.<id>`. `desde`: `submittedDate:[AÑO01010000 TO …]` |
+| PANGAEA | `Pangaea` | ninguna | datasets; `journal="PANGAEA"`, `citations=0`; Elasticsearch ≤ 10 000. `desde`: `range` sobre `agg-pubYear` |
+| Zotero | `Zotero` | `ZOTERO_USER_ID` **o** `ZOTERO_GROUP_ID` (+ `ZOTERO_API_KEY` si es privada) | `citations=0`; sin id no aparece en la UI. `desde`: la API no filtra, solo `_admite` |
 
 Las variables están documentadas en `.env.example`. **Para añadir una fuente**:
-subclase de `Fuente` en `fuentes/`, exportarla en `fuentes/__init__.py`,
+subclase de `Fuente` en `fuentes/` (con `desde` y `_admite`), exportarla en
+`fuentes/__init__.py`,
 registrarla en `configuracion._CONSTRUCTORES`, test offline con una respuesta
 real guardada en `tests/datos/`, sección en el README y, si usa claves, variable
 en `.env.example`.
@@ -213,6 +224,10 @@ en `.env.example`.
   trabaja directamente sobre `main`.
 - **Tests**: obligatorios para cada cambio; **sin red** (`httpx.MockTransport`,
   `sleep` inyectado para no esperar). Respuestas reales en `tests/datos/`.
+  `tests/test_desde.py` comprueba `desde` en todas las fuentes: una fuente nueva
+  se añade a su lista `FUENTES`.
+- **Calidad**: antes de dar algo por terminado, `uv run pytest`,
+  `uv run ruff check` y `uv run ruff format --check` en verde.
 - **Errores al usuario**: nunca imprimir peticiones ni cabeceras (llevan claves).
 - **Documentación**: el README describe instalación, configuración, UI, CLI, uso
   desde Python y cada fuente; mantenerlo al día con cada cambio visible.
@@ -246,6 +261,8 @@ en `.env.example`.
   empiezan por `--`; por eso `litmar ui` usa `parse_known_args`.
 - **`.env` solo se carga en `litmar.main()`** (la entrada del comando), no en
   `cli.main(argv)`: así los tests no leen el `.env` real.
+- **`ruff format` también formatea los bloques de Python del README** (alinea
+  distinto los comentarios). Es normal ver el README en el diff tras formatear.
 - **`Retry-After: 0`** es válido: comprobar con `is None`, no con `or`.
 - **`Biblioteca.guardar`** deja el JSON con permisos `0600` (lo crea
   `NamedTemporaryFile`). Conocido, pendiente.

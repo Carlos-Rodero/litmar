@@ -6,13 +6,14 @@ from pathlib import Path
 
 import httpx
 import pytest
+from test_fuentes import cliente
 
 from litmar.fuentes import Pangaea
 from litmar.fuentes.pangaea import a_articulo
-from test_fuentes import cliente
 
 # Respuesta real de
-# GET /es/pangaea/panmd/_search?source={simple_query_string "ocean acidification", size 3, _source xml}
+# GET /es/pangaea/panmd/_search
+#     ?source={simple_query_string "ocean acidification", size 3, _source xml}
 # guardada el 2026-11-17.
 RESPUESTA_PANGAEA = json.loads(
     (Path(__file__).parent / "datos" / "pangaea_search.json").read_text(encoding="utf-8")
@@ -25,8 +26,13 @@ def con_xml(xml):
     return {"_source": {"xml": xml}}
 
 
-def metadatos(autores="<md:author><md:lastName>Barner</md:lastName><md:firstName>A K</md:firstName></md:author>",
-              uri="<md:URI>https://doi.org/10.1594/PANGAEA.1</md:URI>", anio="<md:year>2018</md:year>"):
+def metadatos(
+    autores=(
+        "<md:author><md:lastName>Barner</md:lastName><md:firstName>A K</md:firstName></md:author>"
+    ),
+    uri="<md:URI>https://doi.org/10.1594/PANGAEA.1</md:URI>",
+    anio="<md:year>2018</md:year>",
+):
     return (
         '<md:MetaData xmlns:md="http://www.pangaea.de/MetaData"><md:citation>'
         f"{autores}{anio}<md:title>Un dataset</md:title>{uri}"
@@ -83,7 +89,8 @@ def test_pangaea_pide_otra_pagina_si_descarta_resultados():
 def test_pangaea_no_pasa_del_limite_de_paginacion():
     fuente = Pangaea(client=cliente(RESPUESTA_PANGAEA, RESPUESTA_PANGAEA))
     fuente.MAX_PER_PAGE, fuente.PAGING_LIMIT = 3, 6
-    # Pide 10 pero solo puede leer los 6 primeros resultados (2 páginas); una tercera petición fallaría.
+    # Pide 10 pero solo puede leer los 6 primeros resultados (2 páginas);
+    # una tercera petición fallaría.
     assert len(fuente.buscar("x", n=10)) == 6
 
 
@@ -104,7 +111,11 @@ def test_pangaea_hereda_los_reintentos():
 
 
 def test_autor_institucional_sin_nombre():
-    autores = "<md:author><md:lastName>Ocean Acidification International Coordination Centre (OA-ICC)</md:lastName></md:author>"
+    autores = (
+        "<md:author><md:lastName>"
+        "Ocean Acidification International Coordination Centre (OA-ICC)"
+        "</md:lastName></md:author>"
+    )
     articulo = a_articulo(con_xml(metadatos(autores=autores)))
     assert articulo.authors == ("Ocean Acidification International Coordination Centre (OA-ICC)",)
     assert articulo.abstract == ""

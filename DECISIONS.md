@@ -61,3 +61,20 @@ en git y compartidos con los colaboradores. El agente actualiza `PROGRESS.md` po
 su cuenta al terminar cada tarea, y los hooks de Claude Code inyectan el estado
 al empezar y recuerdan anotar al terminar. Descartado: memoria privada del
 agente (no la ven otros agentes ni personas, y se pierde al cambiar de máquina).
+
+### D-11 · `desde` como parámetro de `Fuente.buscar`, filtrado en la API y en local — 2026-11-17
+Para `litmar buscar --desde AÑO` (demo de la Clase 1). Cada fuente pasa el año a
+su API (comprobado contra las APIs reales) y además descarta con `_admite` lo
+anterior, porque cada API fecha distinto (arXiv usa la primera versión; Zotero
+no filtra). Descartado: filtrar solo los resultados ya descargados, porque con
+`-n 5` podrían quedar menos de 5.
+
+### D-12 · Búsqueda multifuente compartida en `busqueda.py` — 2026-11-17
+CLI y UI usan `buscar_en_fuentes`: si una fuente falla se sigue con las demás y
+se devuelven los errores (sin cabeceras ni peticiones). En la CLI, si fallan
+todas es un error (código 1, no se guarda nada); si falla alguna, solo un aviso.
+
+### D-13 · ruff con línea de 100 y reglas E, W, F, I, UP, B — 2026-11-17
+Lo enseña la Clase 1. 100 en lugar de 88 porque el código ya estaba escrito así y
+evita partir líneas sin ganar legibilidad. Al adoptarlo se formateó todo el
+proyecto de una vez, en el mismo commit que `--fuente`/`--desde`.

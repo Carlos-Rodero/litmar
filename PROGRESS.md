@@ -8,19 +8,22 @@ el registro solo crece (entradas nuevas arriba).
 
 _Actualizado: 2026-11-17._
 
-- **`main`**: al día con `origin/main`. Último trabajo: harness de memoria
-  (`AGENTS.md`, `PROGRESS.md`, `DECISIONS.md`, hooks) y diapositivas de la
-  Clase 1 en `docs/`.
-- **Curso**: Clase 1 (*Busca*) casi completa; siguiente, Clase 2 (*Lee*: LLM,
-  LangGraph, agente). Ver `AGENTS.md` §2.
-- **Tests**: 181 pasan, sin red, en menos de 1 s.
+- **`main`**: al día con `origin/main`. Último trabajo: la CLI de la demo de la
+  Clase 1 (`--fuente`, `--desde`, `--bibtex`, tabla) y ruff.
+- **Curso**: Clase 1 (*Busca*) completa respecto a las diapositivas; siguiente,
+  Clase 2 (*Lee*: LLM, LangGraph, agente). Ver `AGENTS.md` §2.
+- **Calidad**: 204 tests pasan, sin red, en menos de 1 s; `ruff check` y
+  `ruff format --check` en verde.
 - **PRs abiertas**: ninguna.
 - **Funciona**:
   - modelo `Articulo` y `Biblioteca` (dedup por DOI, BibTeX, CSV, JSON);
-  - seis fuentes: OpenAlex, Crossref, Europe PMC, arXiv, PANGAEA, Zotero;
-  - CLI `litmar buscar | exportar | ui` (la búsqueda por CLI solo usa OpenAlex);
-  - interfaz web con Streamlit (`litmar ui`): búsqueda en varias fuentes, tabla
-    y descargas BibTeX/CSV;
+  - seis fuentes: OpenAlex, Crossref, Europe PMC, arXiv, PANGAEA, Zotero; todas
+    admiten `desde` (año mínimo);
+  - CLI: `litmar buscar "…" --fuente openalex,europepmc --desde 2020 --bibtex
+    refs.bib --guardar biblioteca.json`, con salida en tabla; `litmar exportar`;
+    `litmar ui`;
+  - interfaz web con Streamlit: búsqueda en varias fuentes, tabla y descargas
+    BibTeX/CSV;
   - configuración por `.env` (plantilla en `.env.example`; todo opcional salvo
     Zotero).
 
@@ -28,28 +31,18 @@ _Actualizado: 2026-11-17._
 
 Por orden de prioridad sugerido; nada está empezado.
 
-1. [ ] **CLI como en la demo de la Clase 1** (`docs/Clase1.pdf`, diapositiva 8):
-   ```
-   uv run litmar buscar "posidonia carbon" --fuente openalex,europepmc \
-       --desde 2020 --bibtex refs.bib
-   ```
-   y salida en tabla `AÑO  CITAS  AUTORES  TÍTULO`. Falta: `--fuente` (varias,
-   separadas por comas, reutilizando `configuracion.crear_fuente`; propuesto a
-   @eloyleonorozco en la PR #10), `--desde` (filtrar por año), `--bibtex`
-   directo en `buscar`, la tabla, y aceptar también `--n` (hoy solo `-n`).
-2. [ ] **ruff** (lo enseña la Clase 1): añadirlo al grupo dev, configurarlo en
-   `pyproject.toml`, dejar `ruff check` y `ruff format` en verde y mencionarlo en
-   `AGENTS.md` §3 y el README.
-3. [ ] **Preparar la Clase 2**: `GEMINI_API_KEY` en `.env.example` (las
+1. [ ] **Preparar la Clase 2**: `GEMINI_API_KEY` en `.env.example` (las
    diapositivas lo piden para la clase siguiente). Las diapositivas usan también
    `LITMAR_EMAIL`; aquí la variable equivalente es `CROSSREF_MAILTO`: decidir si
    se renombra.
-4. [ ] **Permisos del JSON**: `Biblioteca.guardar` deja `0600`; aplicar la umask
+2. [ ] **Permisos del JSON**: `Biblioteca.guardar` deja `0600`; aplicar la umask
    con `os.chmod` antes de `os.replace`. Propuesto en la PR #10.
-5. [ ] **Mover el helper `cliente` de `tests/test_fuentes.py` a `conftest.py`**,
+3. [ ] **Mover el helper `cliente` de `tests/test_fuentes.py` a `conftest.py`**,
    para que `test_pangaea.py` no importe de otro fichero de tests.
-6. [ ] **`pyproject.toml`**: cambiar `description = "Add your description here"`.
-7. [ ] **Ideas para la UI** (sin pedir aún): guardar/cargar la biblioteca JSON,
+4. [ ] **`pyproject.toml`**: cambiar `description = "Add your description here"`.
+5. [ ] **«Desde el año» en la UI**: `buscar_en_fuentes` ya admite `desde`; falta
+   el campo en `ui.py`.
+6. [ ] **Ideas para la UI** (sin pedir aún): guardar/cargar la biblioteca JSON,
    filtrar u ordenar resultados, mostrar de qué fuente viene cada artículo.
 
 ## Pendiente de terceros
@@ -66,6 +59,26 @@ contra esto.
   proponer su hook `_antes_de_peticion` en `Fuente`.
 
 ## Registro de sesiones
+
+### 2026-11-17 — Sesión 1 (cont.): CLI de la demo y ruff
+
+- **CLI como en la diapositiva 8 de `docs/Clase1.pdf`**: `--fuente` (varias,
+  separadas por comas, sin distinguir mayúsculas), `--desde AÑO`, `--bibtex` en
+  `buscar`, `--n` además de `-n`, y salida en tabla `AÑO CITAS AUTORES TÍTULO`
+  ajustada a la terminal (ya no imprime los DOI: van en BibTeX/JSON). Era lo que
+  se propuso a @eloyleonorozco en la PR #10; lo hizo el mantenedor.
+- **`desde` en las seis fuentes** (D-11): filtros comprobados contra las APIs
+  reales. Nuevo `tests/test_desde.py`.
+- **`busqueda.py`** (D-12): la búsqueda multifuente que tenía `ui.py` pasa a un
+  módulo compartido; la CLI y la UI lo usan. `Articulo.short_authors` nuevo.
+  Zotero sin configurar da un error que explica qué variable falta.
+- **ruff** (D-13): grupo dev, configuración en `pyproject.toml`, todo el
+  proyecto formateado y en verde.
+- Probado de verdad: la búsqueda de la demo devuelve los mismos artículos que la
+  diapositiva; `--fuente openalex,europepmc --desde 2020 --bibtex` exporta 20.
+- Ruido en el diff: el formateo de ruff toca casi todos los ficheros de
+  colaboradores. Si alguien tiene una PR abierta contra el `main` anterior, puede
+  tener conflictos de formato: que haga `uv run ruff format` tras actualizar.
 
 ### 2026-11-17 — Sesión 1: del proyecto vacío a seis fuentes, CLI e interfaz web
 

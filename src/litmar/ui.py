@@ -2,35 +2,13 @@
 
 from __future__ import annotations
 
-import httpx
 import streamlit as st
 
 from litmar.biblioteca import Biblioteca
-from litmar.configuracion import crear_fuente, fuentes_disponibles
+from litmar.busqueda import buscar_en_fuentes
+from litmar.configuracion import fuentes_disponibles
 
 MAX_RESULTADOS = 200
-
-
-def buscar(consulta: str, nombres: list[str], n: int) -> tuple[Biblioteca, list[str]]:
-    """Busca en cada fuente y junta los resultados sin duplicar DOI.
-
-    Si una fuente falla se sigue con las demás; devuelve también los errores.
-    """
-    biblioteca = Biblioteca()
-    errores = []
-    for nombre in nombres:
-        try:
-            with crear_fuente(nombre) as fuente:
-                for articulo in fuente.buscar(consulta, n):
-                    biblioteca.agregar(articulo)
-        # No mostrar la petición ni las cabeceras: podrían contener credenciales.
-        except httpx.HTTPStatusError as exc:
-            errores.append(f"{nombre} respondió con HTTP {exc.response.status_code}.")
-        except httpx.TransportError:
-            errores.append(f"No se pudo conectar con {nombre} tras los reintentos.")
-        except ValueError as exc:
-            errores.append(f"{nombre}: {exc}")
-    return biblioteca, errores
 
 
 def filas(biblioteca: Biblioteca) -> list[dict[str, object]]:
@@ -72,12 +50,13 @@ def app() -> None:
             with st.spinner("Buscando…"):
                 # Se guarda en la sesión para que sobreviva a las recargas que
                 # provocan los botones de descarga.
-                st.session_state.resultado = buscar(consulta.strip(), nombres, int(n))
+                st.session_state.resultado = buscar_en_fuentes(consulta.strip(), nombres, int(n))
 
     if "resultado" not in st.session_state:
         return
-    biblioteca, errores = st.session_state.resultado
-    for error in errores:
+    resultado = st.session_state.resultado
+    biblioteca = resultado.library
+    for error in resultado.errors:
         st.error(error)
     if not len(biblioteca):
         st.info("No hay resultados.")

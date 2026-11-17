@@ -130,7 +130,9 @@ def test_arxiv_strips_version_from_identifier():
 
 
 def test_arxiv_normalizes_whitespace():
-    entry = entry_element(make_entry(title="  A   title\n with lines  ", summary=" An\n abstract. "))
+    entry = entry_element(
+        make_entry(title="  A   title\n with lines  ", summary=" An\n abstract. ")
+    )
     article = to_article(entry)
     assert article.title == "A title with lines"
     assert article.abstract == "An abstract."
@@ -183,9 +185,9 @@ def test_arxiv_caps_page_size():
     pages.append(atom_response(make_feed(make_entry(id="http://arxiv.org/abs/2401.0020v1"))))
     requests = []
     waits = []
-    articles = CappedArxiv(
-        client=client(*pages, requests=requests), sleep=waits.append
-    ).buscar("x", n=5)
+    articles = CappedArxiv(client=client(*pages, requests=requests), sleep=waits.append).buscar(
+        "x", n=5
+    )
 
     assert len(articles) == 5
     assert [r.url.params["max_results"] for r in requests] == ["2", "2", "2"]
@@ -204,9 +206,7 @@ def test_arxiv_n_invalid():
 
 def test_arxiv_inherits_retries():
     waits = []
-    fuente = Arxiv(
-        client=client(httpx.Response(429), atom_response(FEED)), sleep=waits.append
-    )
+    fuente = Arxiv(client=client(httpx.Response(429), atom_response(FEED)), sleep=waits.append)
     assert len(fuente.buscar("x", n=3)) == 3
     assert waits == [1.0]
 

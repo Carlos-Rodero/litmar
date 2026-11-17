@@ -10,7 +10,9 @@ from litmar.fuentes import Zotero
 
 # Escrita a mano siguiendo el formato documentado de la API v3 (no es una descarga real).
 # Contiene un artículo, una ponencia con un solo campo de nombre, un libro sin DOI y una nota.
-ITEMS = json.loads((Path(__file__).parent / "datos" / "zotero_items.json").read_text(encoding="utf-8"))
+ITEMS = json.loads(
+    (Path(__file__).parent / "datos" / "zotero_items.json").read_text(encoding="utf-8")
+)
 
 
 def cliente(*respuestas, peticiones=None):
@@ -45,7 +47,9 @@ def test_zotero_convierte_respuesta_guardada():
 
 def test_zotero_parametros_de_la_peticion():
     peticiones = []
-    Zotero(user_id=123456, client=cliente(ITEMS, peticiones=peticiones)).buscar("deep learning", n=10)
+    Zotero(user_id=123456, client=cliente(ITEMS, peticiones=peticiones)).buscar(
+        "deep learning", n=10
+    )
 
     (peticion,) = peticiones
     assert peticion.url.host == "api.zotero.org"

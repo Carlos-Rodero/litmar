@@ -5,9 +5,9 @@ from __future__ import annotations
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
-from typing import Any, Self
+from typing import Any, Self, TypeGuard
 
 import httpx
 
@@ -43,8 +43,17 @@ class Fuente(ABC):
         self._sleep = sleep
 
     @abstractmethod
-    def buscar(self, consulta: str, n: int = 10) -> list[Articulo]:
-        """Devuelve como mucho `n` artículos que coinciden con `consulta`."""
+    def buscar(self, consulta: str, n: int = 10, *, desde: int | None = None) -> list[Articulo]:
+        """Devuelve como mucho `n` artículos que coinciden con `consulta`.
+
+        Con `desde`, solo los publicados ese año o después. Cada fuente lo pasa
+        como filtro a su API si puede, y además comprueba el año con `_admite`.
+        """
+
+    @staticmethod
+    def _admite(articulo: Articulo | None, desde: int | None) -> TypeGuard[Articulo]:
+        """True si el resultado se pudo convertir y cumple el filtro de año."""
+        return articulo is not None and (desde is None or articulo.year >= desde)
 
     def _get(
         self,
@@ -103,7 +112,7 @@ class Fuente(ABC):
             fecha = parsedate_to_datetime(valor)
         except (TypeError, ValueError):
             return None
-        return max(0.0, (fecha - datetime.now(timezone.utc)).total_seconds())
+        return max(0.0, (fecha - datetime.now(UTC)).total_seconds())
 
     def close(self) -> None:
         """Cierra el cliente HTTP si lo creó esta fuente."""

@@ -30,7 +30,7 @@ def test_carga_normaliza_y_elimina_duplicados(tmp_path, hacer_articulo):
     assert list(Biblioteca.cargar(ruta)) == [original]
 
 
-@pytest.mark.parametrize("contenido", ["{", "null", "{}", '[null]', '[{"title": "Incompleto"}]'])
+@pytest.mark.parametrize("contenido", ["{", "null", "{}", "[null]", '[{"title": "Incompleto"}]'])
 def test_rechaza_documentos_invalidos(tmp_path, contenido):
     ruta = tmp_path / "invalida.json"
     ruta.write_text(contenido, encoding="utf-8")
@@ -40,8 +40,15 @@ def test_rechaza_documentos_invalidos(tmp_path, contenido):
 
 @pytest.mark.parametrize(
     ("campo", "valor"),
-    [("authors", "Ana García"), ("authors", [None]), ("year", True),
-     ("citations", -1), ("citations", "muchas"), ("abstract", None), ("doi", "inválido")],
+    [
+        ("authors", "Ana García"),
+        ("authors", [None]),
+        ("year", True),
+        ("citations", -1),
+        ("citations", "muchas"),
+        ("abstract", None),
+        ("doi", "inválido"),
+    ],
 )
 def test_rechaza_metadatos_invalidos(tmp_path, hacer_articulo, campo, valor):
     ruta = tmp_path / "biblioteca.json"
@@ -53,7 +60,9 @@ def test_rechaza_metadatos_invalidos(tmp_path, hacer_articulo, campo, valor):
         Biblioteca.cargar(ruta)
 
 
-def test_fallo_al_reemplazar_conserva_archivo_y_limpia_temporal(tmp_path, hacer_articulo, monkeypatch):
+def test_fallo_al_reemplazar_conserva_archivo_y_limpia_temporal(
+    tmp_path, hacer_articulo, monkeypatch
+):
     ruta = tmp_path / "biblioteca.json"
     Biblioteca().guardar(ruta)
     original = ruta.read_bytes()

@@ -31,14 +31,15 @@ class Crossref(Fuente):
         super().__init__(**kwargs)
         self.mailto = mailto
 
-    def buscar(self, consulta: str, n: int = 10) -> list[Articulo]:
+    def buscar(self, consulta: str, n: int = 10, *, desde: int | None = None) -> list[Articulo]:
         if n < 1:
             raise ValueError("n debe ser al menos 1")
         rows = min(n, self.MAX_ROWS)
         params: dict[str, Any] = {
             "query": consulta,
             # Articulo exige revista: se excluyen libros, capítulos, datasets...
-            "filter": "type:journal-article",
+            "filter": "type:journal-article"
+            + (f",from-pub-date:{desde}" if desde is not None else ""),
             "rows": rows,
             # Con cursor, si no se pide el orden explícitamente, los resultados
             # dejan de ir por relevancia (comprobado contra la API).
@@ -51,14 +52,15 @@ class Crossref(Fuente):
 
         articulos: list[Articulo] = []
         cursor = "*"  # cursor y no offset: offset no pasa de 10 000
-        # Se descartan obras sin DOI, título, año o autores, así que puede hacer falta más de una página.
+        # Se descartan obras sin DOI, título, año o autores, así que puede hacer falta
+        # más de una página.
         while len(articulos) < n:
             datos = self._get_json(self.BASE_URL, params={**params, "cursor": cursor})
             mensaje = datos.get("message") or {}
             items = mensaje.get("items") or []
             for item in items:
                 articulo = a_articulo(item)
-                if articulo is not None:
+                if self._admite(articulo, desde):
                     articulos.append(articulo)
                     if len(articulos) == n:
                         break

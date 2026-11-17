@@ -27,17 +27,28 @@ class Pangaea(Fuente):
     MAX_PER_PAGE = 100
     PAGING_LIMIT = 10_000  # from + size no puede superarlo (max_result_window)
 
-    def buscar(self, consulta: str, n: int = 10) -> list[Articulo]:
+    def buscar(self, consulta: str, n: int = 10, *, desde: int | None = None) -> list[Articulo]:
         if n < 1:
             raise ValueError("n debe ser al menos 1")
         size = min(n, self.MAX_PER_PAGE)
         articulos: list[Articulo] = []
-        desde = 0
-        # Se descartan datasets con metadatos incompletos, así que puede hacer falta más de una página.
-        while len(articulos) < n and desde + size <= self.PAGING_LIMIT:
+        consulta_es: dict[str, Any] = {
+            "simple_query_string": {"query": consulta, "default_operator": "and"}
+        }
+        if desde is not None:
+            consulta_es = {
+                "bool": {
+                    "must": [consulta_es],
+                    "filter": [{"range": {"agg-pubYear": {"gte": desde}}}],
+                }
+            }
+        inicio = 0
+        # Se descartan datasets con metadatos incompletos, así que puede hacer falta
+        # más de una página.
+        while len(articulos) < n and inicio + size <= self.PAGING_LIMIT:
             cuerpo = {
-                "query": {"simple_query_string": {"query": consulta, "default_operator": "and"}},
-                "from": desde,
+                "query": consulta_es,
+                "from": inicio,
                 "size": size,
                 "_source": ["xml"],
             }
@@ -49,13 +60,13 @@ class Pangaea(Fuente):
             resultados = (datos.get("hits") or {}).get("hits") or []
             for resultado in resultados:
                 articulo = a_articulo(resultado)
-                if articulo is not None:
+                if self._admite(articulo, desde):
                     articulos.append(articulo)
                     if len(articulos) == n:
                         break
             if len(resultados) < size:  # no hay más páginas
                 break
-            desde += size
+            inicio += size
         return articulos
 
 
@@ -68,11 +79,14 @@ def a_articulo(resultado: dict[str, Any]) -> Articulo | None:
         raiz = ET.fromstring(xml)
     except ET.ParseError:
         return None
-    # Solo los hijos directos de <citation>: <supplementTo> repite autores y título del artículo asociado.
+    # Solo los hijos directos de <citation>: <supplementTo> repite autores y título
+    # del artículo asociado.
     cita = raiz.find("md:citation", _NS)
     if cita is None:
         return None
-    autores = [nombre for autor in cita.findall("md:author", _NS) if (nombre := _nombre_autor(autor))]
+    autores = [
+        nombre for autor in cita.findall("md:author", _NS) if (nombre := _nombre_autor(autor))
+    ]
     doi = cita.findtext("md:URI", namespaces=_NS)
     titulo = cita.findtext("md:title", namespaces=_NS)
     anio = cita.findtext("md:year", namespaces=_NS)

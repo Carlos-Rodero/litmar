@@ -75,9 +75,7 @@ def test_bibtex_claves_unicas(hacer_articulo):
 
 
 def test_bibtex_escapa_caracteres_latex(hacer_articulo):
-    bibtex = Biblioteca(
-        [hacer_articulo(title="R&D al 100% {nuevo}", doi="10.1000/a_b")]
-    ).a_bibtex()
+    bibtex = Biblioteca([hacer_articulo(title="R&D al 100% {nuevo}", doi="10.1000/a_b")]).a_bibtex()
     assert r"title = {{R\&D al 100\% \{nuevo\}}}" in bibtex
     assert "doi = {10.1000/a_b}" in bibtex  # el DOI no se escapa
 

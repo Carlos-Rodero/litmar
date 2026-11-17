@@ -39,7 +39,7 @@ class Zotero(Fuente):
         self.url = f"{self.BASE_URL}/{prefijo}/items"
         self.api_key = api_key
 
-    def buscar(self, consulta: str, n: int = 10) -> list[Articulo]:
+    def buscar(self, consulta: str, n: int = 10, *, desde: int | None = None) -> list[Articulo]:
         if n < 1:
             raise ValueError("n debe ser al menos 1")
         headers = {"Zotero-API-Version": "3"}
@@ -49,6 +49,7 @@ class Zotero(Fuente):
         articulos: list[Articulo] = []
         start = 0
         # Se descartan adjuntos, notas y obras sin DOI, así que puede hacer falta más de una página.
+        # La API no filtra por fecha: `desde` solo se aplica con `_admite`.
         while len(articulos) < n:
             items = self._get_json(
                 self.url,
@@ -63,7 +64,7 @@ class Zotero(Fuente):
             )
             for item in items:
                 articulo = a_articulo(item)
-                if articulo is not None:
+                if self._admite(articulo, desde):
                     articulos.append(articulo)
                     if len(articulos) == n:
                         break

@@ -20,12 +20,14 @@ class EuropePMC(Fuente):
     MAX_PAGE_SIZE = 1000
     DEFAULT_PAGE_SIZE = 100
 
-    def buscar(self, consulta: str, n: int = 10) -> list[Articulo]:
+    def buscar(self, consulta: str, n: int = 10, *, desde: int | None = None) -> list[Articulo]:
         if n < 1:
             raise ValueError("n debe ser al menos 1")
 
         articulos: list[Articulo] = []
         cursor_mark = "*"
+        if desde is not None:
+            consulta = f"({consulta}) AND (PUB_YEAR:[{desde} TO 9999])"
 
         while len(articulos) < n:
             page_size = min(max(25, n - len(articulos)), self.DEFAULT_PAGE_SIZE)
@@ -43,7 +45,7 @@ class EuropePMC(Fuente):
 
             for obra in resultado_lista:
                 articulo = a_articulo(obra)
-                if articulo is not None:
+                if self._admite(articulo, desde):
                     articulos.append(articulo)
                     if len(articulos) == n:
                         break

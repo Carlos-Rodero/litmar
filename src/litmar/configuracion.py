@@ -15,6 +15,8 @@ def _valor(entorno: Mapping[str, str], clave: str) -> str | None:
 
 
 def _zotero(entorno: Mapping[str, str]) -> Zotero:
+    if not (_valor(entorno, "ZOTERO_USER_ID") or _valor(entorno, "ZOTERO_GROUP_ID")):
+        raise ValueError("configura ZOTERO_USER_ID o ZOTERO_GROUP_ID (ver .env.example)")
     return Zotero(
         user_id=_valor(entorno, "ZOTERO_USER_ID"),
         group_id=_valor(entorno, "ZOTERO_GROUP_ID"),
@@ -32,6 +34,20 @@ _CONSTRUCTORES: dict[str, Callable[[Mapping[str, str]], Fuente]] = {
 }
 
 FUENTES: tuple[str, ...] = tuple(_CONSTRUCTORES)
+
+
+def id_fuente(nombre: str) -> str:
+    """Identificador para la línea de comandos: «Europe PMC» → «europepmc»."""
+    return nombre.lower().replace(" ", "")
+
+
+def nombre_fuente(identificador: str) -> str:
+    """Nombre de la fuente a partir de su identificador, sin distinguir mayúsculas."""
+    for nombre in FUENTES:
+        if id_fuente(nombre) == id_fuente(identificador.strip()):
+            return nombre
+    validos = ", ".join(id_fuente(nombre) for nombre in FUENTES)
+    raise ValueError(f"fuente desconocida: {identificador!r} (válidas: {validos})")
 
 
 def fuentes_disponibles(entorno: Mapping[str, str] | None = None) -> list[str]:
