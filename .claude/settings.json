@@ -11,7 +11,14 @@
     ],
     "deny": [
       "Read(**/.env)",
-      "Read(**/.env.*)"
+      "Read(**/.env.[a-df-z0-9_.-]*)",
+      "Read(**/.env.e[a-wyz0-9_.-]*)",
+      "Read(**/.env.ex[b-z0-9_.-]*)",
+      "Read(**/.env.exa[a-ln-z0-9_.-]*)",
+      "Read(**/.env.exam[a-oq-z0-9_.-]*)",
+      "Read(**/.env.examp[a-km-z0-9_.-]*)",
+      "Read(**/.env.exampl[a-df-z0-9_.-]*)",
+      "Read(**/.env.example?*)"
     ]
   }
 }
