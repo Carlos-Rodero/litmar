@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -39,11 +41,36 @@ def _parser() -> argparse.ArgumentParser:
     exportar = comandos.add_parser("exportar", help="Exportar una biblioteca JSON a BibTeX")
     exportar.add_argument("biblioteca", type=Path)
     exportar.add_argument("--bibtex", type=Path, required=True, metavar="ARCHIVO.bib")
+    comandos.add_parser(
+        "ui", help="Abrir la interfaz web en el navegador",
+        epilog="Las opciones adicionales se pasan a `streamlit run`, p. ej. --server.port 8600.",
+    )
     return parser
 
 
+def _lanzar_ui(opciones: list[str]) -> int:
+    """Ejecuta `streamlit run ui.py` con el mismo intérprete y entorno."""
+    if importlib.util.find_spec("streamlit") is None:
+        print(
+            "Error: la interfaz necesita Streamlit. Instálalo con "
+            "`uv sync --extra ui` o `pip install 'litmar[ui]'`.",
+            file=sys.stderr,
+        )
+        return 1
+    ui = Path(__file__).with_name("ui.py")
+    try:
+        return subprocess.call([sys.executable, "-m", "streamlit", "run", str(ui), *opciones])
+    except KeyboardInterrupt:  # Ctrl+C para cerrar el servidor
+        return 0
+
+
 def main(argv: list[str] | None = None) -> int:
-    args = _parser().parse_args(argv)
+    parser = _parser()
+    args, extra = parser.parse_known_args(argv)
+    if args.comando == "ui":
+        return _lanzar_ui(extra)
+    if extra:
+        parser.error(f"argumentos no reconocidos: {' '.join(extra)}")
     try:
         if args.comando == "buscar":
             biblioteca = (

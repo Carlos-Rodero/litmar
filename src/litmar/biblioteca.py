@@ -1,7 +1,9 @@
-"""Colección de artículos sin duplicados y exportación a BibTeX."""
+"""Colección de artículos sin duplicados y exportación a BibTeX y CSV."""
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import os
 import re
@@ -9,7 +11,7 @@ import string
 import tempfile
 import unicodedata
 from collections.abc import Iterable, Iterator
-from dataclasses import asdict
+from dataclasses import asdict, fields
 from pathlib import Path
 
 from litmar.articulo import Articulo, apellido, normalizar_doi
@@ -73,6 +75,20 @@ class Biblioteca:
     def exportar_bibtex(self, ruta: str | Path) -> None:
         """Escribe la biblioteca en un fichero .bib (UTF-8)."""
         Path(ruta).write_text(self.a_bibtex(), encoding="utf-8")
+
+    def a_csv(self) -> str:
+        """Devuelve los artículos como CSV, con las mismas columnas que el JSON.
+
+        Los autores van en una sola celda separados por «; ».
+        """
+        salida = io.StringIO()
+        escritor = csv.writer(salida)
+        escritor.writerow(campo.name for campo in fields(Articulo))
+        for articulo in self:
+            fila = asdict(articulo)
+            fila["authors"] = "; ".join(articulo.authors)
+            escritor.writerow(fila.values())
+        return salida.getvalue()
 
     def guardar(self, ruta: str | Path) -> None:
         """Guarda todos los metadatos en JSON, sustituyendo el archivo de forma atómica."""

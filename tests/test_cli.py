@@ -120,3 +120,29 @@ def test_exportar_no_sobrescribe_la_biblioteca(tmp_path):
     original = ruta.read_bytes()
     assert main(["exportar", str(ruta), "--bibtex", str(ruta)]) == 1
     assert ruta.read_bytes() == original
+
+
+def test_ui_lanza_streamlit_con_el_mismo_interprete(monkeypatch):
+    import sys
+
+    llamadas = []
+    monkeypatch.setattr("litmar.cli.subprocess.call", lambda args: llamadas.append(args) or 0)
+    assert main(["ui"]) == 0
+    [args] = llamadas
+    assert args[:4] == [sys.executable, "-m", "streamlit", "run"]
+    assert Path(args[4]) == Path(__file__).parent.parent / "src" / "litmar" / "ui.py"
+    assert args[5:] == []
+
+
+def test_ui_pasa_opciones_a_streamlit(monkeypatch):
+    llamadas = []
+    monkeypatch.setattr("litmar.cli.subprocess.call", lambda args: llamadas.append(args) or 0)
+    assert main(["ui", "--server.port", "8600"]) == 0
+    assert llamadas[0][5:] == ["--server.port", "8600"]
+
+
+def test_ui_sin_streamlit_explica_como_instalarlo(monkeypatch, capsys):
+    monkeypatch.setattr("litmar.cli.importlib.util.find_spec", lambda nombre: None)
+    monkeypatch.setattr("litmar.cli.subprocess.call", lambda args: pytest.fail("no debe lanzarse"))
+    assert main(["ui"]) == 1
+    assert "uv sync --extra ui" in capsys.readouterr().err

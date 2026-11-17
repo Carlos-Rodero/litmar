@@ -12,9 +12,51 @@ Se puede usar desde la línea de comandos o como librería.
 Requiere Python 3.12 o superior y [uv](https://docs.astral.sh/uv/).
 
 ```bash
-uv sync
+uv sync                 # librería y CLI (en desarrollo incluye también la interfaz web)
+uv sync --extra ui      # fuera del grupo dev: añade Streamlit para `litmar ui`
 uv run litmar --help
 ```
+
+Con pip: `pip install .` o, con la interfaz web, `pip install '.[ui]'`.
+
+## Configuración
+
+Las claves y datos de cada fuente se leen de variables de entorno. Lo más cómodo
+es un fichero `.env` en el directorio desde el que ejecutas `litmar`:
+
+```bash
+cp .env.example .env    # y rellena lo que necesites
+```
+
+Todo es opcional: sin configurar nada funcionan OpenAlex, Crossref, Europe PMC,
+arXiv y PANGAEA. `.env.example` explica cada variable:
+
+| Variable | Fuente | Para qué |
+| --- | --- | --- |
+| `OPENALEX_API_KEY` | OpenAlex | Presupuesto diario propio en lugar del compartido |
+| `CROSSREF_MAILTO` | Crossref | Entrar en el *polite pool*, con límites más altos |
+| `ZOTERO_USER_ID` o `ZOTERO_GROUP_ID` | Zotero | Biblioteca en la que buscar (sin ella, Zotero no aparece) |
+| `ZOTERO_API_KEY` | Zotero | Solo para bibliotecas privadas |
+
+`.env` no se sube a git. Las variables que ya estén definidas en el entorno
+tienen prioridad sobre las del fichero.
+
+## Interfaz web
+
+```bash
+uv run litmar ui
+```
+
+Abre en el navegador una página para:
+- escribir la búsqueda, elegir las fuentes y el número de resultados por fuente;
+- ver una tabla con año, citas, autores, título y enlace al DOI, sin duplicados
+  entre fuentes;
+- descargar los resultados en BibTeX o en CSV (el CSV se abre bien en Excel).
+
+Si una fuente falla, se muestra el error y se siguen viendo los resultados de las
+demás. Las opciones adicionales se pasan a Streamlit, por ejemplo
+`uv run litmar ui --server.port 8600`. La primera vez, Streamlit pide un correo
+para su boletín: basta con pulsar Intro para saltarlo.
 
 ## Línea de comandos
 
@@ -46,7 +88,8 @@ uv run litmar exportar biblioteca.json --bibtex referencias.bib
   1 y los argumentos inválidos, 2.
 - **`python -m`:** la CLI también se ejecuta con `uv run python -m litmar`.
 
-La clave de OpenAlex se lee de la variable de entorno `OPENALEX_API_KEY`:
+La clave de OpenAlex se lee de `OPENALEX_API_KEY`, del `.env` (ver
+[Configuración](#configuración)) o del entorno:
 
 ```bash
 # bash / zsh (macOS, Linux)
@@ -85,6 +128,7 @@ recuperada.exportar_bibtex("referencias.bib")
   - `agregar` devuelve `False` si el DOI ya estaba.
   - `obtener(doi)` admite el DOI en cualquier formato.
   - `guardar` y `cargar` leen y escriben el JSON.
+  - `a_bibtex` y `a_csv` devuelven el texto exportado.
 - **Fuentes:** todas heredan de `Fuente` e implementan
   `buscar(consulta, n) -> list[Articulo]`. Reintentan solas ante errores de red,
   `429` y `5xx`, con espera exponencial y respetando `Retry-After`.
@@ -187,4 +231,5 @@ Los tests no usan la red ni necesitan claves:
 - las fuentes se prueban con `httpx.MockTransport` y respuestas reales guardadas
   en `tests/datos/`;
 - también cubren los modelos, la deduplicación, los reintentos, la persistencia
-  y el flujo de la CLI hasta la exportación BibTeX.
+  y el flujo de la CLI hasta la exportación BibTeX;
+- la interfaz web se prueba con `streamlit.testing` y fuentes simuladas.
