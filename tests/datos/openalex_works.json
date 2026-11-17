@@ -1,0 +1,825 @@
+{
+  "meta": {
+    "notice": "No API key, so this request shares one free daily budget ($0.10) with everyone on your network's IP address. Get a free key with its own $1/day at https://openalex.org/settings/api and add api_key=YOUR_KEY to your requests. An AI agent can get one for its user in one call: POST https://api.openalex.org/api-keys with {\"email\": \"<your user's email>\"}; we email them a link, and the key works once they click it. Docs for agents: https://help.openalex.org/llms.txt",
+    "count": 147989,
+    "db_response_time_ms": 98,
+    "page": 1,
+    "per_page": 3,
+    "groups_count": null,
+    "x_query": {
+      "oql": "get works with (bibliometrics citation analysis) in the title, abstract, or full text",
+      "x_new_oql": "get works with (bibliometrics citation analysis) in the title, abstract, or full text",
+      "oqo": {
+        "get_rows": "works",
+        "filter_rows": [
+          {
+            "column_id": "fulltext.search",
+            "value": "bibliometrics citation analysis",
+            "operator": "has"
+          }
+        ]
+      },
+      "url": "/works?filter=fulltext.search:bibliometrics citation analysis&per_page=3",
+      "order": "best matches first",
+      "order_default": true
+    },
+    "cost_usd": 0.001
+  },
+  "results": [
+    {
+      "id": "https://openalex.org/W2024874075",
+      "doi": "https://doi.org/10.1515/libr.1996.46.3.149",
+      "title": "Bibliometrics, Citation Analysis and Co-Citation Analysis: A Review of Literature I",
+      "authorships": [
+        {
+          "author_position": "first",
+          "author": {
+            "id": "https://openalex.org/A5046497699",
+            "display_name": "Farideh Osareh",
+            "orcid": "https://orcid.org/0000-0001-6691-0339",
+            "observed_orcids": [
+              "https://orcid.org/0000-0001-6691-0339"
+            ]
+          },
+          "institutions": [],
+          "countries": [],
+          "is_corresponding": true,
+          "raw_author_name": "FARIDEH OSAREH",
+          "raw_affiliation_strings": [],
+          "raw_orcid": null,
+          "affiliations": []
+        }
+      ],
+      "publication_year": 1996,
+      "primary_location": {
+        "id": "doi:10.1515/libr.1996.46.3.149",
+        "doi": "https://doi.org/10.1515/libr.1996.46.3.149",
+        "is_oa": false,
+        "landing_page_url": "https://doi.org/10.1515/libr.1996.46.3.149",
+        "pdf_url": null,
+        "source": {
+          "id": "https://openalex.org/S170287832",
+          "display_name": "Libri",
+          "issn_l": "0024-2667",
+          "issn": [
+            "0024-2667",
+            "1865-8423"
+          ],
+          "is_oa": false,
+          "is_in_doaj": true,
+          "is_core": true,
+          "listed_in": [
+            "anvur-scientific",
+            "cwts-core",
+            "doaj",
+            "jufo-1",
+            "norway-1",
+            "poland-100",
+            "russia-white-list-2"
+          ],
+          "host_organization": "https://openalex.org/P4310313990",
+          "host_organization_name": "De Gruyter",
+          "host_organization_lineage": [
+            "https://openalex.org/P4310313990"
+          ],
+          "host_organization_lineage_names": [
+            "De Gruyter"
+          ],
+          "type": "journal"
+        },
+        "license": null,
+        "license_id": null,
+        "version": "publishedVersion",
+        "is_accepted": true,
+        "is_published": true,
+        "raw_source_name": "Libri",
+        "raw_type": "journal-article"
+      },
+      "abstract_inverted_index": null,
+      "cited_by_count": 702,
+      "type": "article"
+    },
+    {
+      "id": "https://openalex.org/W2565408710",
+      "doi": "https://doi.org/10.1016/j.jbusres.2016.11.009",
+      "title": "Mapping the luxury research landscape: A bibliometric citation analysis",
+      "authorships": [
+        {
+          "author_position": "first",
+          "author": {
+            "id": "https://openalex.org/A5076776186",
+            "display_name": "Hannes Gurzki",
+            "orcid": "https://orcid.org/0000-0002-2914-6025",
+            "observed_orcids": [
+              "https://orcid.org/0000-0002-2914-6025"
+            ]
+          },
+          "institutions": [
+            {
+              "id": "https://openalex.org/I94509681",
+              "display_name": "Technische Universität Braunschweig",
+              "ror": "https://ror.org/010nsgg66",
+              "country_code": "DE",
+              "type": "education",
+              "lineage": [
+                "https://openalex.org/I94509681"
+              ]
+            }
+          ],
+          "countries": [
+            "DE"
+          ],
+          "is_corresponding": false,
+          "raw_author_name": "Hannes Gurzki",
+          "raw_affiliation_strings": [
+            "TU Braunschweig, Chair of Services Management, Mühlenpfordtstr. 23, 38106 Braunschweig, Germany"
+          ],
+          "raw_orcid": null,
+          "affiliations": [
+            {
+              "raw_affiliation_string": "TU Braunschweig, Chair of Services Management, Mühlenpfordtstr. 23, 38106 Braunschweig, Germany",
+              "institution_ids": [
+                "https://openalex.org/I94509681"
+              ]
+            }
+          ]
+        },
+        {
+          "author_position": "last",
+          "author": {
+            "id": "https://openalex.org/A5063166828",
+            "display_name": "David M. Woisetschläger",
+            "orcid": "https://orcid.org/0000-0003-2189-3832",
+            "observed_orcids": [
+              "https://orcid.org/0000-0003-2189-3832"
+            ]
+          },
+          "institutions": [
+            {
+              "id": "https://openalex.org/I94509681",
+              "display_name": "Technische Universität Braunschweig",
+              "ror": "https://ror.org/010nsgg66",
+              "country_code": "DE",
+              "type": "education",
+              "lineage": [
+                "https://openalex.org/I94509681"
+              ]
+            }
+          ],
+          "countries": [
+            "DE"
+          ],
+          "is_corresponding": true,
+          "raw_author_name": "David M. Woisetschläger",
+          "raw_affiliation_strings": [
+            "TU Braunschweig, Chair of Services Management, Mühlenpfordtstr. 23, 38106 Braunschweig, Germany"
+          ],
+          "raw_orcid": null,
+          "affiliations": [
+            {
+              "raw_affiliation_string": "TU Braunschweig, Chair of Services Management, Mühlenpfordtstr. 23, 38106 Braunschweig, Germany",
+              "institution_ids": [
+                "https://openalex.org/I94509681"
+              ]
+            }
+          ]
+        }
+      ],
+      "publication_year": 2016,
+      "primary_location": {
+        "id": "doi:10.1016/j.jbusres.2016.11.009",
+        "doi": "https://doi.org/10.1016/j.jbusres.2016.11.009",
+        "is_oa": false,
+        "landing_page_url": "https://doi.org/10.1016/j.jbusres.2016.11.009",
+        "pdf_url": null,
+        "source": {
+          "id": "https://openalex.org/S93284759",
+          "display_name": "Journal of Business Research",
+          "issn_l": "0148-2963",
+          "issn": [
+            "0148-2963",
+            "1873-7978"
+          ],
+          "is_oa": false,
+          "is_in_doaj": false,
+          "is_core": true,
+          "listed_in": [
+            "abdc-a",
+            "anvur-class-a",
+            "anvur-scientific",
+            "cwts-core",
+            "erih-plus",
+            "fnege-2",
+            "jufo-2",
+            "ki-jl-2",
+            "norway-2",
+            "poland-140",
+            "russia-white-list-1",
+            "vabb-shw"
+          ],
+          "host_organization": "https://openalex.org/P4310320990",
+          "host_organization_name": "Elsevier BV",
+          "host_organization_lineage": [
+            "https://openalex.org/P4310320990"
+          ],
+          "host_organization_lineage_names": [
+            "Elsevier BV"
+          ],
+          "type": "journal"
+        },
+        "license": null,
+        "license_id": null,
+        "version": "publishedVersion",
+        "is_accepted": true,
+        "is_published": true,
+        "raw_source_name": "Journal of Business Research",
+        "raw_type": "journal-article"
+      },
+      "abstract_inverted_index": null,
+      "cited_by_count": 368,
+      "type": "article"
+    },
+    {
+      "id": "https://openalex.org/W2752778301",
+      "doi": null,
+      "title": "Bibliometric Citation Analysis of Cultural Intelligence",
+      "authorships": [
+        {
+          "author_position": "first",
+          "author": {
+            "id": "https://openalex.org/A5069902327",
+            "display_name": "Erik Lankut",
+            "orcid": "https://orcid.org/0000-0003-2197-3410",
+            "observed_orcids": [
+              "https://orcid.org/0000-0003-2197-3410"
+            ]
+          },
+          "institutions": [],
+          "countries": [],
+          "is_corresponding": false,
+          "raw_author_name": "Erik Lankut",
+          "raw_affiliation_strings": [],
+          "raw_orcid": "https://orcid.org/0000-0003-2197-3410",
+          "affiliations": []
+        },
+        {
+          "author_position": "last",
+          "author": {
+            "id": "https://openalex.org/A5011082131",
+            "display_name": "Nooria Yari",
+            "orcid": "https://orcid.org/0000-0002-3103-2334",
+            "observed_orcids": [
+              "https://orcid.org/0000-0002-3103-2334"
+            ]
+          },
+          "institutions": [],
+          "countries": [],
+          "is_corresponding": false,
+          "raw_author_name": "Nooria Yari",
+          "raw_affiliation_strings": [],
+          "raw_orcid": "https://orcid.org/0000-0002-3103-2334",
+          "affiliations": []
+        }
+      ],
+      "publication_year": 2017,
+      "primary_location": {
+        "id": "pmh:oai:brage.bibsys.no:11250/2453741",
+        "doi": null,
+        "is_oa": true,
+        "landing_page_url": "http://hdl.handle.net/11250/2453741",
+        "pdf_url": null,
+        "source": {
+          "id": "https://openalex.org/S4306400255",
+          "display_name": "BIBSYS Brage (BIBSYS (Norway))",
+          "issn_l": null,
+          "issn": null,
+          "is_oa": false,
+          "is_in_doaj": false,
+          "is_core": false,
+          "listed_in": [],
+          "host_organization": "https://openalex.org/I173212132",
+          "host_organization_name": "Vilnius University",
+          "host_organization_lineage": [
+            "https://openalex.org/I173212132"
+          ],
+          "host_organization_lineage_names": [],
+          "type": "repository"
+        },
+        "license": "cc-by-nc-nd",
+        "license_id": "https://openalex.org/licenses/cc-by-nc-nd",
+        "version": "submittedVersion",
+        "is_accepted": false,
+        "is_published": false,
+        "raw_source_name": "57 p.",
+        "raw_type": "Master thesis"
+      },
+      "abstract_inverted_index": {
+        "Purpose": [
+          0
+        ],
+        "–": [
+          1,
+          38,
+          80,
+          176
+        ],
+        "The": [
+          2,
+          39,
+          81,
+          129,
+          192,
+          213
+        ],
+        "purpose": [
+          3
+        ],
+        "of": [
+          4,
+          44,
+          54,
+          58,
+          67,
+          90,
+          105,
+          109,
+          131,
+          183,
+          198,
+          216,
+          221
+        ],
+        "this": [
+          5
+        ],
+        "paper": [
+          6,
+          40
+        ],
+        "is": [
+          7,
+          179
+        ],
+        "to": [
+          8,
+          14,
+          29,
+          51,
+          63,
+          102,
+          203
+        ],
+        "identify": [
+          9
+        ],
+        "the": [
+          10,
+          42,
+          56,
+          88,
+          98,
+          180,
+          188,
+          219
+        ],
+        "most": [
+          11,
+          99
+        ],
+        "influential": [
+          12
+        ],
+        "contributions": [
+          13
+        ],
+        "cultural": [
+          15,
+          45,
+          189
+        ],
+        "intelligence": [
+          16,
+          46,
+          190
+        ],
+        "by": [
+          17,
+          70
+        ],
+        "a": [
+          18,
+          65,
+          184
+        ],
+        "bibliometric": [
+          19,
+          60
+        ],
+        "citation": [
+          20,
+          61,
+          185,
+          201
+        ],
+        "analysis": [
+          21,
+          82,
+          186
+        ],
+        "using": [
+          22
+        ],
+        "HistCite,": [
+          23
+        ],
+        "VOSviewer": [
+          24
+        ],
+        "and": [
+          25,
+          33,
+          48,
+          52,
+          103,
+          126,
+          140,
+          154,
+          157,
+          195,
+          206
+        ],
+        "CiteNetExplorer,": [
+          26
+        ],
+        "in": [
+          27,
+          73,
+          133
+        ],
+        "order": [
+          28
+        ],
+        "provide": [
+          30
+        ],
+        "an": [
+          31
+        ],
+        "objective": [
+          32,
+          205
+        ],
+        "scientific": [
+          34,
+          207
+        ],
+        "future": [
+          35,
+          168
+        ],
+        "research": [
+          36,
+          85,
+          169,
+          174
+        ],
+        "direction.\\nDesign/methodology/approach": [
+          37
+        ],
+        "describes": [
+          41
+        ],
+        "development": [
+          43
+        ],
+        "construct": [
+          47
+        ],
+        "its": [
+          49
+        ],
+        "antecedents": [
+          50,
+          101
+        ],
+        "outcomes": [
+          53,
+          104
+        ],
+        "CQ,": [
+          55
+        ],
+        "synthesis": [
+          57
+        ],
+        "three": [
+          59,
+          199
+        ],
+        "tools": [
+          62,
+          202
+        ],
+        "analyse": [
+          64
+        ],
+        "sample": [
+          66
+        ],
+        "357": [
+          68
+        ],
+        "articles": [
+          69
+        ],
+        "823": [
+          71
+        ],
+        "scholars": [
+          72
+        ],
+        "199": [
+          74
+        ],
+        "different": [
+          75,
+          200
+        ],
+        "journals": [
+          76
+        ],
+        "published": [
+          77
+        ],
+        "between": [
+          78
+        ],
+        "1992-2017.\\nFindings": [
+          79
+        ],
+        "revealed": [
+          83
+        ],
+        "10": [
+          84
+        ],
+        "clusters": [
+          86
+        ],
+        "within": [
+          87
+        ],
+        "topic": [
+          89
+        ],
+        "Cultural": [
+          91,
+          110,
+          113,
+          222
+        ],
+        "Intelligence": [
+          92,
+          114,
+          150
+        ],
+        "that": [
+          93
+        ],
+        "can": [
+          94
+        ],
+        "be": [
+          95
+        ],
+        "categorized": [
+          96
+        ],
+        "as": [
+          97,
+          209,
+          211
+        ],
+        "relevant": [
+          100
+        ],
+        "CQ:": [
+          106
+        ],
+        "1)": [
+          107
+        ],
+        "Validation": [
+          108
+        ],
+        "Intelligence;": [
+          111
+        ],
+        "2)": [
+          112
+        ],
+        "Hypothesis;": [
+          115
+        ],
+        "3)": [
+          116
+        ],
+        "Experiential": [
+          117
+        ],
+        "Learning": [
+          118
+        ],
+        "&": [
+          119,
+          162
+        ],
+        "Global": [
+          120,
+          159
+        ],
+        "Leader": [
+          121
+        ],
+        "development;": [
+          122
+        ],
+        "4)": [
+          123
+        ],
+        "Expatriate": [
+          124
+        ],
+        "Performance": [
+          125
+        ],
+        "Adjustment;": [
+          127
+        ],
+        "5)": [
+          128
+        ],
+        "use": [
+          130,
+          197
+        ],
+        "EQ": [
+          132
+        ],
+        "Culturally": [
+          134
+        ],
+        "Diverse": [
+          135
+        ],
+        "Teams;": [
+          136
+        ],
+        "6)": [
+          137
+        ],
+        "Mindfulness,": [
+          138
+        ],
+        "Knowledge": [
+          139
+        ],
+        "Behaviour;": [
+          141
+        ],
+        "7)": [
+          142
+        ],
+        "CQ": [
+          143
+        ],
+        "moderating": [
+          144
+        ],
+        "intercultural": [
+          145
+        ],
+        "service": [
+          146
+        ],
+        "encounters;": [
+          147
+        ],
+        "8)": [
+          148
+        ],
+        "Emotional": [
+          149
+        ],
+        "Research;": [
+          151
+        ],
+        "9)": [
+          152
+        ],
+        "Managerial": [
+          153
+        ],
+        "Cognitive": [
+          155
+        ],
+        "CQ;": [
+          156
+        ],
+        "10)": [
+          158
+        ],
+        "Virtual": [
+          160
+        ],
+        "Teams": [
+          161
+        ],
+        "Cross-Cultural": [
+          163
+        ],
+        "training.": [
+          164
+        ],
+        "We": [
+          165
+        ],
+        "also": [
+          166
+        ],
+        "include": [
+          167
+        ],
+        "direction": [
+          170
+        ],
+        "for": [
+          171
+        ],
+        "each": [
+          172
+        ],
+        "emerged": [
+          173
+        ],
+        "cluster.\\nOriginality/value": [
+          175
+        ],
+        "This": [
+          177
+        ],
+        "study": [
+          178
+        ],
+        "first": [
+          181,
+          193,
+          214
+        ],
+        "attempt": [
+          182,
+          215
+        ],
+        "on": [
+          187
+        ],
+        "research;": [
+          191
+        ],
+        "integrated": [
+          194
+        ],
+        "synthesised": [
+          196
+        ],
+        "achieve": [
+          204
+        ],
+        "results": [
+          208
+        ],
+        "close": [
+          210
+        ],
+        "possible;": [
+          212
+        ],
+        "essentially": [
+          217
+        ],
+        "unpacking": [
+          218
+        ],
+        "\"DNA\"": [
+          220
+        ],
+        "Intelligence.": [
+          223
+        ]
+      },
+      "cited_by_count": 0,
+      "type": "dissertation"
+    }
+  ],
+  "group_by": []
+}
