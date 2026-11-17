@@ -20,5 +20,27 @@
       "Read(**/.env.exampl[a-df-z0-9_.-]*)",
       "Read(**/.env.example?*)"
     ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/contexto-inicial.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/recordar-progreso.sh"
+          }
+        ]
+      }
+    ]
   }
 }
