@@ -59,7 +59,13 @@ def _lanzar_ui(opciones: list[str]) -> int:
         return 1
     ui = Path(__file__).with_name("ui.py")
     try:
-        return subprocess.call([sys.executable, "-m", "streamlit", "run", str(ui), *opciones])
+        return subprocess.call([
+            sys.executable, "-m", "streamlit", "run", str(ui),
+            # Sin estadísticas de uso para Streamlit; las opciones del usuario van
+            # después y pueden cambiarlo.
+            "--browser.gatherUsageStats", "false",
+            *opciones,
+        ])
     except KeyboardInterrupt:  # Ctrl+C para cerrar el servidor
         return 0
 

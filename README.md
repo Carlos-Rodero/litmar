@@ -55,8 +55,9 @@ Abre en el navegador una página para:
 
 Si una fuente falla, se muestra el error y se siguen viendo los resultados de las
 demás. Las opciones adicionales se pasan a Streamlit, por ejemplo
-`uv run litmar ui --server.port 8600`. La primera vez, Streamlit pide un correo
-para su boletín: basta con pulsar Intro para saltarlo.
+`uv run litmar ui --server.port 8600`. `litmar ui` desactiva las estadísticas de
+uso que Streamlit envía por defecto. La primera vez, Streamlit pide un correo para
+su boletín: es opcional y basta con pulsar Intro para saltarlo.
 
 ## Línea de comandos
 

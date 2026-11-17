@@ -131,14 +131,14 @@ def test_ui_lanza_streamlit_con_el_mismo_interprete(monkeypatch):
     [args] = llamadas
     assert args[:4] == [sys.executable, "-m", "streamlit", "run"]
     assert Path(args[4]) == Path(__file__).parent.parent / "src" / "litmar" / "ui.py"
-    assert args[5:] == []
+    assert args[5:] == ["--browser.gatherUsageStats", "false"]
 
 
 def test_ui_pasa_opciones_a_streamlit(monkeypatch):
     llamadas = []
     monkeypatch.setattr("litmar.cli.subprocess.call", lambda args: llamadas.append(args) or 0)
     assert main(["ui", "--server.port", "8600"]) == 0
-    assert llamadas[0][5:] == ["--server.port", "8600"]
+    assert llamadas[0][-2:] == ["--server.port", "8600"]
 
 
 def test_ui_sin_streamlit_explica_como_instalarlo(monkeypatch, capsys):
