@@ -8,8 +8,11 @@ el registro solo crece (entradas nuevas arriba).
 
 _Actualizado: 2026-11-17._
 
-- **`main`**: al día con `origin/main`. Último trabajo: interfaz web y harness
-  de memoria (`AGENTS.md`, `PROGRESS.md`, `DECISIONS.md`, hooks).
+- **`main`**: al día con `origin/main`. Último trabajo: harness de memoria
+  (`AGENTS.md`, `PROGRESS.md`, `DECISIONS.md`, hooks) y diapositivas de la
+  Clase 1 en `docs/`.
+- **Curso**: Clase 1 (*Busca*) casi completa; siguiente, Clase 2 (*Lee*: LLM,
+  LangGraph, agente). Ver `AGENTS.md` §2.
 - **Tests**: 181 pasan, sin red, en menos de 1 s.
 - **PRs abiertas**: ninguna.
 - **Funciona**:
@@ -25,14 +28,28 @@ _Actualizado: 2026-11-17._
 
 Por orden de prioridad sugerido; nada está empezado.
 
-1. [ ] **`--fuente` en la CLI** para buscar en cualquier fuente, reutilizando
-   `configuracion.crear_fuente`. Propuesto a @eloyleonorozco en la PR #10.
-2. [ ] **Permisos del JSON**: `Biblioteca.guardar` deja `0600`; aplicar la umask
+1. [ ] **CLI como en la demo de la Clase 1** (`docs/Clase1.pdf`, diapositiva 8):
+   ```
+   uv run litmar buscar "posidonia carbon" --fuente openalex,europepmc \
+       --desde 2020 --bibtex refs.bib
+   ```
+   y salida en tabla `AÑO  CITAS  AUTORES  TÍTULO`. Falta: `--fuente` (varias,
+   separadas por comas, reutilizando `configuracion.crear_fuente`; propuesto a
+   @eloyleonorozco en la PR #10), `--desde` (filtrar por año), `--bibtex`
+   directo en `buscar`, la tabla, y aceptar también `--n` (hoy solo `-n`).
+2. [ ] **ruff** (lo enseña la Clase 1): añadirlo al grupo dev, configurarlo en
+   `pyproject.toml`, dejar `ruff check` y `ruff format` en verde y mencionarlo en
+   `AGENTS.md` §3 y el README.
+3. [ ] **Preparar la Clase 2**: `GEMINI_API_KEY` en `.env.example` (las
+   diapositivas lo piden para la clase siguiente). Las diapositivas usan también
+   `LITMAR_EMAIL`; aquí la variable equivalente es `CROSSREF_MAILTO`: decidir si
+   se renombra.
+4. [ ] **Permisos del JSON**: `Biblioteca.guardar` deja `0600`; aplicar la umask
    con `os.chmod` antes de `os.replace`. Propuesto en la PR #10.
-3. [ ] **Mover el helper `cliente` de `tests/test_fuentes.py` a `conftest.py`**,
+5. [ ] **Mover el helper `cliente` de `tests/test_fuentes.py` a `conftest.py`**,
    para que `test_pangaea.py` no importe de otro fichero de tests.
-4. [ ] **`pyproject.toml`**: cambiar `description = "Add your description here"`.
-5. [ ] **Ideas para la UI** (sin pedir aún): guardar/cargar la biblioteca JSON,
+6. [ ] **`pyproject.toml`**: cambiar `description = "Add your description here"`.
+7. [ ] **Ideas para la UI** (sin pedir aún): guardar/cargar la biblioteca JSON,
    filtrar u ordenar resultados, mostrar de qué fuente viene cada artículo.
 
 ## Pendiente de terceros
@@ -79,3 +96,6 @@ Todo el proyecto se construyó en esta sesión (Roberto Bada con Claude Code).
 - **Harness de memoria**: `AGENTS.md`, `CLAUDE.md`, `PROGRESS.md`,
   `DECISIONS.md` y hooks `SessionStart`/`Stop`. El usuario eligió: ficheros en el
   repo, el agente anota el progreso solo, y hooks además de instrucciones.
+- **Diapositivas**: el usuario añadió `docs/Clase1.pdf` (Clase 1 del curso). De
+  ellas salen el contexto del curso y la hoja de ruta de `AGENTS.md` §2, y los
+  próximos pasos 1-3 (CLI de la demo, ruff, preparación de la Clase 2).

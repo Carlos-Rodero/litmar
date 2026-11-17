@@ -91,10 +91,34 @@ común (`Articulo`), elimina duplicados por DOI y exporta a BibTeX, CSV o JSON.
 Se usa como librería, desde la línea de comandos (`litmar buscar/exportar`) o
 con una interfaz web (`litmar ui`, Streamlit).
 
-- Repositorio: <https://github.com/Sapere-IA/litmar> (rama `main`).
-- Mantenedor: Roberto Bada (Sapere IA). Los colaboradores externos mandan PRs
-  desde sus forks.
+- Repositorio: <https://github.com/Sapere-IA/litmar> (rama `main`, **público**).
+- Mantenedor: Roberto Bada (Sapere IA).
 - El usuario habla en **español**: responde en español.
+
+### Contexto: es el proyecto de un curso
+
+litmar es el proyecto que se construye en directo en el curso **«Python avanzado
+para proyectos robustos, colaborativos y reproducibles»** (Institut de Ciències
+del Mar, tres clases, imparte Roberto Bada). Las diapositivas están en `docs/`
+(`docs/Clase1.pdf`). Consecuencias:
+
+- **Los colaboradores son alumnos.** Hacen fork, trabajan en una rama y mandan
+  PRs al repositorio del curso; el mantenedor integra algunas. Al revisarlas:
+  tono didáctico, explicar el porqué, preguntas antes que órdenes.
+- **Es material docente**: el código debe ser claro y fácil de explicar, con el
+  patrón «concepto → para qué sirve → cómo se pide → cómo se comprueba».
+- **Hoja de ruta del curso** (lo que viene; detalle en `PROGRESS.md`):
+  - Clase 1 · *Busca*: fuentes, biblioteca, CLI, UI Streamlit, `.env`, tests,
+    calidad con ruff. (Hecha casi toda.)
+  - Clase 2 · *Lee*: un LLM (Gemini, clave gratuita en `GEMINI_API_KEY`) hace
+    resúmenes estructurados; un flujo LangGraph buscar → filtrar → resumir →
+    sintetizar; y un agente (Deep Agents) que planifica y cita solo lo que
+    encuentra.
+  - Clase 3 · *Se comparte*: API con FastAPI y empaquetado con Docker.
+- **Arquitectura que el curso enseña** y hay que respetar: lógica (modelos,
+  fuentes, biblioteca) separada de configuración (`.env` + `configuracion.py`) y
+  de los puntos de entrada (CLI, UI y, más adelante, API). La lógica no sabe nada
+  de la terminal ni de la web.
 
 ## 3. Comandos
 
@@ -130,6 +154,7 @@ src/litmar/
     base.py          Fuente (ABC): buscar(consulta, n) abstracto; _get/_get_json
                      con reintentos; context manager
     openalex.py crossref.py europepmc.py arxiv.py pangaea.py zotero.py
+docs/                diapositivas del curso (PDF)
 tests/
   conftest.py        fixture hacer_articulo (fábrica de Articulo válidos)
   test_*.py          uno por módulo/fuente; test_ui.py usa streamlit.testing
