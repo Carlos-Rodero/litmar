@@ -6,7 +6,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from litmar.fuentes import Crossref, Fuente, OpenAlex
+from litmar.fuentes import Crossref, EuropePMC, Fuente, OpenAlex
 from litmar.fuentes.crossref import a_articulo as crossref_a_articulo
 from litmar.fuentes.crossref import limpiar_jats
 from litmar.fuentes.openalex import reconstruir_resumen
@@ -17,7 +17,9 @@ DATOS = Path(__file__).parent / "datos"
 # GET /works?search=bibliometrics citation analysis&per_page=3&select=...
 # guardada el 2026-11-17. Contiene una obra sin DOI, que debe descartarse.
 RESPUESTA_OPENALEX = json.loads((DATOS / "openalex_works.json").read_text(encoding="utf-8"))
+RESPUESTA_EUROPEPMC = json.loads((DATOS / "europepmc_search.json").read_text(encoding="utf-8"))
 VACIA = {"meta": {}, "results": []}
+VACIA_EUROPEPMC = {"resultList": {"result": []}}
 
 # Respuestas reales de Crossref, guardadas el 2026-11-17 con
 # GET /works?query=citation analysis bibliometrics&filter=type:journal-article
@@ -365,3 +367,103 @@ def test_limpiar_jats():
     ) == "Methods: Uso de R & Python."
     assert limpiar_jats("<jats:p>Uno.</jats:p><jats:p>Dos.</jats:p>") == "Uno. Dos."
     assert limpiar_jats("") == ""
+
+
+# --- EuropePMC ----------------------------------------------------------------
+
+
+def test_europepmc_convierte_respuesta_guardada():
+    articulos = EuropePMC(client=cliente(RESPUESTA_EUROPEPMC)).buscar("malaria", n=3)
+
+    assert len(articulos) == 3
+    # Comprobar que descarta la obra sin DOI y obtiene las 3 válidas
+    assert [a.doi for a in articulos] == [
+        "10.4269/ajtmh.26-0338",
+        "10.64898/2026.09.28.26363670",
+        "10.1038/s41590-026-02610-7",
+    ]
+    primero = articulos[0]
+    assert primero.title.startswith("Status of Malaria Vaccine Introduction")
+    assert primero.year == 2026
+    assert primero.journal == "The American journal of tropical medicine and hygiene"
+    assert primero.short_citation == "Ly et al. (2026)"
+
+    # Preprint sin journal
+    assert articulos[1].journal == ""
+    assert articulos[1].short_citation == "Wood et al. (2026)"
+
+    # Un solo autor
+    assert articulos[2].authors == ("Bernard, Nicholas J",)
+    assert articulos[2].short_citation == "Bernard (2026)"
+
+
+def test_europepmc_parametros_de_la_peticion():
+    peticiones = []
+    EuropePMC(client=cliente(RESPUESTA_EUROPEPMC, peticiones=peticiones)).buscar("cancer", n=2)
+
+    (peticion,) = peticiones
+    assert peticion.url.host == "www.ebi.ac.uk"
+    assert peticion.url.path == "/europepmc/webservices/rest/search"
+    params = peticion.url.params
+    assert params["query"] == "cancer"
+    assert params["format"] == "json"
+    assert params["resultType"] == "core"
+    assert params["cursorMark"] == "*"
+
+
+def test_europepmc_pide_otra_pagina_si_descarta_obras():
+    # Página 1 tiene 2 obras pero una no tiene DOI (queda 1 válida). Si pedimos n=2, pide la página 2 con cursorMark.
+    pagina_1 = {
+        "nextCursorMark": "cursor_2",
+        "resultList": {
+            "result": [
+                {
+                    "title": "Valid Article 1",
+                    "doi": "10.1000/1",
+                    "pubYear": "2023",
+                    "authorList": {"author": [{"lastName": "Garcia", "firstName": "Ana"}]},
+                },
+                {
+                    "title": "Invalid No DOI",
+                    "pubYear": "2023",
+                    "authorList": {"author": [{"lastName": "Perez", "firstName": "Juan"}]},
+                },
+            ]
+        },
+    }
+    pagina_2 = {
+        "nextCursorMark": "cursor_3",
+        "resultList": {
+            "result": [
+                {
+                    "title": "Valid Article 2",
+                    "doi": "10.1000/2",
+                    "pubYear": "2023",
+                    "authorList": {"author": [{"lastName": "Lopez", "firstName": "Carlos"}]},
+                }
+            ]
+        },
+    }
+    peticiones = []
+    articulos = EuropePMC(client=cliente(pagina_1, pagina_2, peticiones=peticiones)).buscar("x", n=2)
+    assert len(articulos) == 2
+    assert len(peticiones) == 2
+    assert peticiones[0].url.params["cursorMark"] == "*"
+    assert peticiones[1].url.params["cursorMark"] == "cursor_2"
+
+
+def test_europepmc_no_devuelve_mas_de_n():
+    assert len(EuropePMC(client=cliente(RESPUESTA_EUROPEPMC)).buscar("x", n=1)) == 1
+
+
+def test_europepmc_n_invalido():
+    with pytest.raises(ValueError):
+        EuropePMC(client=cliente()).buscar("x", n=0)
+
+
+def test_europepmc_hereda_los_reintentos():
+    esperas = []
+    fuente = EuropePMC(client=cliente(httpx.Response(429), RESPUESTA_EUROPEPMC), sleep=esperas.append)
+    assert len(fuente.buscar("x", n=2)) == 2
+    assert esperas == [1.0]
+
