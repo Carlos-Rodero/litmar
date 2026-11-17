@@ -32,6 +32,9 @@ tiene que estar escrito en el repositorio. Estos son los ficheros de memoria:
    Si `main` va por detrás, avisa al usuario antes de hacer `git pull`.
 3. Si la tarea toca una decisión ya tomada, **consulta `DECISIONS.md`** antes de
    proponer otra cosa.
+4. Repasa **§10 (cómo trabaja el usuario)** y, si la tarea es revisar PRs,
+   **§11**. Si el encargo parece sacado de una diapositiva, búscalo en `docs/`
+   (ver §10).
 
 ### Durante la sesión
 
@@ -71,7 +74,7 @@ Estos ficheros son públicos (están en GitHub y los leen los colaboradores):
 Configurados en `.claude/settings.json`:
 
 - **`SessionStart` → `.claude/hooks/contexto-inicial.sh`**: al abrir, reanudar o
-  compactar una sesión, inyecta el estado de `PROGRESS.md`, la última entrada del
+  compactar una sesión, inyecta el estado de `PROGRESS.md`, las dos últimas entradas del
   registro y el estado de git. Así la sesión arranca con contexto aunque nadie lo
   pida.
 - **`Stop` → `.claude/hooks/recordar-progreso.sh`**: cuando el agente va a
@@ -108,13 +111,20 @@ del Mar, tres clases, imparte Roberto Bada). Las diapositivas están en `docs/`
 - **Es material docente**: el código debe ser claro y fácil de explicar, con el
   patrón «concepto → para qué sirve → cómo se pide → cómo se comprueba».
 - **Hoja de ruta del curso** (lo que viene; detalle en `PROGRESS.md`):
-  - Clase 1 · *Busca*: fuentes, biblioteca, CLI, UI Streamlit, `.env`, tests,
-    calidad con ruff. (Hecha casi toda.)
-  - Clase 2 · *Lee*: un LLM (Gemini, clave gratuita en `GEMINI_API_KEY`) hace
-    resúmenes estructurados; un flujo LangGraph buscar → filtrar → resumir →
-    sintetizar; y un agente (Deep Agents) que planifica y cita solo lo que
-    encuentra.
-  - Clase 3 · *Se comparte*: API con FastAPI y empaquetado con Docker.
+  - Clase 1 · *Busca* (17/11/2026, según la portada): fuentes, biblioteca, CLI,
+    UI Streamlit, `.env`, tests, calidad con ruff. **Completa.**
+  - Clase 2 · *Lee* (al día siguiente, 18/11/2026, según la última diapositiva):
+    un LLM (Gemini; clave gratuita de aistudio.google.com en `GEMINI_API_KEY`)
+    hace resúmenes estructurados de cada artículo (mensajes, contexto y coste);
+    un flujo LangGraph que diseñamos: buscar → filtrar → resumir → sintetizar; y
+    el mismo asistente como agente (Deep Agents) que planifica, delega y cita
+    solo lo que encuentra.
+  - Clase 3 · *Se comparte* (previsiblemente 19/11/2026: el curso son «tres
+    días»): API con FastAPI y empaquetado con Docker.
+  - Aún no hay diapositivas de las clases 2 y 3. Cuando aparezcan en `docs/`,
+    léelas antes de empezar y vuelca lo relevante aquí y en `PROGRESS.md`.
+  - Las librerías de la Clase 2 (SDK de Gemini, LangGraph, Deep Agents) cambian
+    rápido: consulta su documentación actual antes de escribir código.
 - **Arquitectura que el curso enseña** y hay que respetar: lógica (modelos,
   fuentes, biblioteca) separada de configuración (`.env` + `configuracion.py`) y
   de los puntos de entrada (CLI, UI y, más adelante, API). La lógica no sabe nada
@@ -269,3 +279,55 @@ en `.env.example`.
 - **Merges de PRs desde local**: hacer push a `main` de una rama que contiene el
   commit de la PR hace que GitHub la marque como MERGED. Para conflictos, rama
   `integrar-N`, resolver, tests, `merge --ff-only` en `main`, push.
+- **Acciones que el sistema de permisos de Claude Code ha bloqueado** (modo
+  automático): hacer push a la rama de un fork ajeno y borrar ficheros de la
+  memoria privada del agente. No intentes rodearlo: explica qué querías hacer y
+  deja que el usuario decida.
+
+## 10. Cómo trabaja el usuario
+
+- **Es el profesor del curso** y usa estas sesiones para preparar y dar las
+  clases. Varios encargos han sido **copia literal de los prompts de las
+  diapositivas** (Articulo y Biblioteca, Fuente y OpenAlex, la interfaz
+  Streamlit). Si un encargo coincide con una diapositiva de `docs/`, léela: la
+  columna «En qué fijarse» dice qué se va a comprobar en clase, y el resultado
+  debe superarlo (p. ej. «¿Qué pasa si una fuente falla?», «¿Alguna clave visible
+  en la interfaz?»).
+- **Escribe en español, con mensajes cortos** y a veces con erratas. «sí», «si»,
+  «adelante», «sii» significan «hazlo». Si algo es ambiguo de verdad (p. ej.
+  «haz a y b» cuando no había nada marcado con a y b), pregunta antes.
+- **Pide explicación antes de código** en los encargos grandes («explícame el
+  diseño antes»). Encaja con el método del curso: primero el plan, luego el
+  código.
+- **Hace preguntas de concepto** (qué es `staticmethod`, uv frente a venv, qué es
+  `pyproject.toml`) para explicarlas en clase: respuestas didácticas, breves y con
+  ejemplos del propio proyecto.
+- **Le gusta que le guíen paso a paso** en tareas con efectos hacia fuera (PRs,
+  comentarios, merges): el agente propone, explica el porqué y pregunta antes de
+  comentar, cerrar, fusionar o hacer push.
+- **Al terminar**, un resumen corto: qué se hizo, cómo se comprobó (tests, prueba
+  real) y qué queda pendiente o requiere su decisión.
+
+## 11. Revisar e integrar PRs de alumnos
+
+1. `gh pr list` y `gh pr view N` (autor, rama, descripción). Comprueba si duplica
+   una fuente o funcionalidad que ya existe (D-6).
+2. Trae la rama: `git fetch origin pull/N/head:pr-N`. Lee el diff completo
+   (`git diff main...pr-N`), ejecuta los tests **en su rama** y una **fusión de
+   prueba** con `main` (rama `integrar-N`): conflictos, tests, ruff y, si toca
+   una API, una prueba real.
+3. Informa al usuario: puntos fuertes, problemas (bloqueantes o no) y una
+   recomendación. **Espera su visto bueno** antes de comentar, cerrar o fusionar.
+4. Para integrar: en `integrar-N`, `git merge --no-ff pr-N` con el mensaje
+   «Merge pull request #N from usuario/rama», resuelve conflictos, tests y ruff en
+   verde, `git switch main && git merge --ff-only integrar-N`, push. GitHub marca
+   la PR como MERGED. Borra `pr-N` e `integrar-N`.
+5. Comenta en la PR (`gh pr comment N`): agradecimiento, qué se cambió al
+   integrar y mejoras propuestas para una PR de seguimiento. Tono didáctico.
+   Anota esas propuestas en «Pendiente de terceros» de `PROGRESS.md`.
+6. Para PRs duplicadas: ciérralas (`gh pr close N --comment …`) explicando por
+   qué se eligió otra e invitando a aportar sus mejoras sobre la existente.
+7. Tras el formateo con ruff (D-13), una PR basada en el `main` anterior puede
+   chocar solo por formato: pide al alumno `uv run ruff format`, o fórmatealo tú
+   al integrar.
+

@@ -5,11 +5,11 @@ cd "${CLAUDE_PROJECT_DIR:-.}" || exit 0
 
 echo "=== Memoria del proyecto (hook SessionStart; flujo en AGENTS.md §1) ==="
 if [ -f PROGRESS.md ]; then
-  # Todo hasta el registro, más la última entrada del registro.
+  # Todo hasta el registro, más las dos últimas entradas del registro.
   awk '
     /^## Registro de sesiones/ { registro = 1; print; next }
     registro && /^### / { entradas++ }
-    !registro || entradas <= 1 { print }
+    !registro || entradas <= 2 { print }
   ' PROGRESS.md
 else
   echo "Falta PROGRESS.md: créalo siguiendo AGENTS.md §1."
