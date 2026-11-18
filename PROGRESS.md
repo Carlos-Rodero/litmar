@@ -6,7 +6,7 @@ el registro solo crece (entradas nuevas arriba).
 
 ## Estado actual
 
-_Actualizado: 2026-11-17._
+_Actualizado: 2026-11-18._
 
 - **`main`**: al día con `origin/main`. Último trabajo: la CLI de la demo de la
   Clase 1 (`--fuente`, `--desde`, `--bibtex`, tabla), ruff, y las diapositivas
@@ -34,11 +34,10 @@ _Actualizado: 2026-11-17._
 
 Por orden de prioridad sugerido; nada está empezado.
 
-0. [ ] **Comprobar el arnés de memoria al abrir la sesión**. Los hooks se
-   crearon en la sesión 1 y aún no se han probado en una sesión real. Si al
-   empezar no llegó el bloque «Memoria del proyecto (hook SessionStart…)»,
-   revisar con `/hooks` que `.claude/settings.json` los carga, y anotar el
-   resultado aquí.
+0. [ ] **Comprobar el arnés de memoria**. `SessionStart` **funciona**: el
+   18/11/2026, al reanudar la sesión, inyectó el estado de este fichero y de git.
+   Falta ver en una sesión real que `Stop` pide anotar el progreso cuando hay
+   trabajo sin registrar (los casos se probaron a mano con un repo de prueba).
 1. [ ] **Clase 2**: seguir el «Plan de la Clase 2» (abajo). **Antes de nada,
    preguntar al usuario** si quiere construirlo ya (como ensayo, igual que se
    hizo con la Clase 1 lanzando los prompts de las diapositivas en estas
@@ -134,6 +133,18 @@ contra esto.
   proponer su hook `_antes_de_peticion` en `Fuente`.
 
 ## Registro de sesiones
+
+### 2026-11-18 — Sesión 2: comprobación de los hooks
+
+- El hook `SessionStart` funciona en una sesión real (al reanudar inyectó el
+  estado de `PROGRESS.md` y de git). Paso 0 actualizado.
+- Dudas del usuario sobre `Stop`: se ejecuta al final de **cada turno** (no al
+  salir, ni con Esc, ni si se apaga el ordenador; para la salida existe
+  `SessionEnd`, que no puede pedir nada al agente). Cuesta 0 tokens cuando deja
+  terminar; si bloquea, ~100 tokens más la edición de `PROGRESS.md`, una vez por
+  turno. Se le ofreció una versión más silenciosa (ignorar commits ya hechos);
+  de momento se queda como está.
+- Sin cambios de código. La Clase 2 sigue sin empezar.
 
 ### 2026-11-17 — Sesión 1 (cierre 2): diapositivas de la Clase 2
 
