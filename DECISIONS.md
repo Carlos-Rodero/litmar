@@ -132,3 +132,16 @@ alumno tiene las suyas y no aparecen en sus PRs (una de muestra se puede añadir
 con `git add -f`). `--informe` y `--bibtex` siguen permitiendo otra ruta. La
 ruta es relativa al directorio desde el que se ejecuta `litmar`. Descartado:
 nombrar solo por pregunta (se pisan) o solo por fecha (no dice de qué trata).
+
+### D-20 · Una herramienta de búsqueda para todas las fuentes, errores como texto — 2026-11-18
+Diapositiva 28. `buscar_articulos(consulta, fuente, n)` en vez de una
+herramienta por fuente: el modelo elige la fuente con un parámetro y una fuente
+nueva que llegue por PR queda disponible sin tocar las herramientas
+(`listar_fuentes` usa `fuentes_disponibles`; la descripción para el modelo sale
+de `herramientas.DESCRIPCIONES`, y si falta dice «sin descripción»). `fuente`
+es `str` y se valida en el código (no un `Literal`), para que un nombre
+inválido vuelva al modelo como texto con la lista de válidas en lugar de un
+error de validación. Cualquier excepción de la fuente se convierte en texto con
+`busqueda.mensaje_de_error`, que nunca incluye la petición (la URL puede llevar
+`CROSSREF_MAILTO` o claves). Límite de 10 y resumen recortado a 400 caracteres
+en el código.

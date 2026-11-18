@@ -8,14 +8,14 @@ el registro solo crece (entradas nuevas arriba).
 
 _Actualizado: 2026-11-18._
 
-- **`main`**: al día con `origin/main`. Último trabajo: el flujo LangGraph (a11b28a) y las
-  revisiones guardadas en `ejemplos/revisiones/` (D-19).
+- **`main`**: al día con `origin/main`. Último trabajo: las herramientas
+  `buscar_articulos` y `listar_fuentes` (paso 6, ver registro).
 - **Curso**: Clase 1 (*Busca*, 17/11/2026) completa respecto a las
   diapositivas. La siguiente es la Clase 2 (*Lee*), el **18/11/2026**; sus
   diapositivas están en `docs/Clase2.pdf` y su plan, abajo. Se está
-  construyendo como ensayo, encargo a encargo: hechos los pasos 1 a 5 (`.env.example`, `resumir`, `llm.py`, Práctica 1,
-  flujo LangGraph), probados con un modelo real (Anthropic).
-- **Calidad**: 250 tests pasan, sin red, en ~1,5 s; `ruff check` y
+  construyendo como ensayo, encargo a encargo: hechos los pasos 1 a 6 (`.env.example`, `resumir`, `llm.py`, Práctica 1,
+  flujo LangGraph, herramientas), probados con un modelo real (Anthropic).
+- **Calidad**: 273 tests pasan, sin red, en ~1,5 s; `ruff check` y
   `ruff format --check` en verde.
 - **PRs abiertas**: ninguna.
 - **Funciona**:
@@ -35,6 +35,8 @@ _Actualizado: 2026-11-18._
     (`src/litmar/flujo.py`) con verificación de citas por código; guarda
     `revision.md` y `revision.bib` (solo lo citado) en
     `ejemplos/revisiones/<fecha_hora_pregunta>/` (ignorado en git);
+  - herramientas de LangChain `buscar_articulos` y `listar_fuentes`
+    (`src/litmar/herramientas.py`), listas para el agente;
   - configuración por `.env` (plantilla en `.env.example`; todo opcional salvo
     Zotero).
 
@@ -47,8 +49,8 @@ Por orden de prioridad sugerido; nada está empezado.
    Falta ver en una sesión real que `Stop` pide anotar el progreso cuando hay
    trabajo sin registrar (los casos se probaron a mano con un repo de prueba).
 1. [ ] **Clase 2**: seguir el «Plan de la Clase 2» (abajo). El usuario lanza
-   los prompts de las diapositivas uno a uno (ensayo). Siguiente: las
-   herramientas (paso 6). Pendiente: probar con Gemini (solo se ha probado con
+   los prompts de las diapositivas uno a uno (ensayo). Siguiente: la
+   votación de clase (paso 7) y el agente con Deep Agents (paso 8). Pendiente: probar con Gemini (solo se ha probado con
    Anthropic). Ojo: con el límite por defecto la primera llamada espera ~6 s (el
    limitador empieza vacío).
 2. [ ] **Permisos del JSON**: `Biblioteca.guardar` deja `0600`; aplicar la umask
@@ -93,7 +95,7 @@ la documentación actual de LangChain, LangGraph y deepagents antes de programar
    no, vuelve a `sintetizar`, máximo 2 veces). Comando `litmar revisar
    "pregunta" --modo flujo` que muestra cada paso (ver demo, diapositiva 21) y
    guarda el informe y el BibTeX de lo citado. Primero plan y diagrama Mermaid.
-6. [ ] **Herramientas** (`src/litmar/herramientas.py`): `buscar_articulos(consulta,
+6. [x] **Herramientas** (18/11, D-20) (`src/litmar/herramientas.py`): `buscar_articulos(consulta,
    fuente, n)` (reutiliza `crear_fuente`) y `listar_fuentes` (usa
    `fuentes_disponibles`), con `@tool` de LangChain. Máximo 10 en el código;
    errores como mensaje; devuelven título, año, DOI, citas y resumen recortado;
@@ -118,6 +120,10 @@ la documentación actual de LangChain, LangGraph y deepagents antes de programar
 
 ## Cabos sueltos
 
+- **Europe PMC deja HTML en títulos y resúmenes** (`<i>…</i>`, `&lt;i&gt;`),
+  visto el 18/11 al probar `buscar_articulos`. Afecta a la tabla de la CLI, al
+  BibTeX y a lo que ve el modelo. Limpiarlo en `fuentes/europepmc.py` (con
+  `html.unescape` y quitar etiquetas) y añadir un test con un título así.
 - **Memoria privada del agente duplicada**: en la máquina del usuario queda
   `~/.claude/projects/-Users-presindev-dev-scratch-litmar/memory/atributos-en-ingles.md`
   (y su línea en `MEMORY.md` de esa carpeta) con la convención de atributos en
@@ -140,6 +146,24 @@ contra esto.
   proponer su hook `_antes_de_peticion` en `Fuente`.
 
 ## Registro de sesiones
+
+### 2026-11-18 — Sesión 2: herramientas (Clase 2, encargo 6)
+
+- Prompt literal de la diapositiva 28. `src/litmar/herramientas.py`:
+  `buscar_articulos(consulta, fuente="OpenAlex", n=5)` y `listar_fuentes()` con
+  `@tool(parse_docstring=True)`; `HERRAMIENTAS` para el agente. D-20.
+- «En qué fijarse»: (1) una herramienta para todas las fuentes, con `fuente`
+  como parámetro; (2) los docstrings dicen qué devuelve, cuándo usarla, que solo
+  se citen sus DOI y que PANGAEA da datos; (3) `n = max(1, min(n, 10))` en el
+  código; (4) si una fuente falla, el modelo recibe «Error: OpenAlex respondió
+  con HTTP 503. Prueba con otra fuente.», sin la URL.
+- Refactor: `busqueda.mensaje_de_error()` (lo usan `buscar_en_fuentes` y la
+  herramienta), con un caso para errores inesperados (solo el tipo).
+- `tests/test_herramientas.py` (23 tests, sin red). 273 tests.
+- Prueba real: las dos herramientas contra las APIs (Europe PMC, PANGAEA, una
+  fuente inexistente) y `bind_tools` con Claude: pidió
+  `buscar_articulos(consulta="ocean acidification coral", n=3)`. Se vio HTML en
+  los títulos de Europe PMC (anotado en «Cabos sueltos»).
 
 ### 2026-11-18 — Sesión 2: salidas de `litmar revisar` en `ejemplos/revisiones/`
 

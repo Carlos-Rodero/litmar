@@ -184,6 +184,25 @@ flowchart LR
 - **Coste:** una llamada para planificar, una por artículo y de 1 a 3 para la
   síntesis. Con el límite de 10 llamadas por minuto, en torno a minuto y medio.
 
+### Herramientas para un modelo
+
+`litmar.herramientas` ofrece las fuentes como herramientas de LangChain, para
+que un modelo (o un agente) las pida:
+
+- **`buscar_articulos(consulta, fuente, n)`**: una sola herramienta para todas
+  las fuentes. Devuelve título, año, DOI, citas y el principio del resumen.
+  Como mucho 10 resultados (límite en el código). Si la fuente falla o no
+  existe, devuelve un texto que empieza por «Error», no una excepción. Con
+  PANGAEA avisa de que son datos, no artículos.
+- **`listar_fuentes()`**: las fuentes disponibles y qué contiene cada una.
+
+```python
+from litmar.herramientas import HERRAMIENTAS, buscar_articulos
+
+print(buscar_articulos.invoke({"consulta": "posidonia carbon", "fuente": "europepmc", "n": 3}))
+modelo_con_herramientas = modelo.bind_tools(HERRAMIENTAS)
+```
+
 ## Uso desde Python
 
 ```python

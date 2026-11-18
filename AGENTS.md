@@ -144,7 +144,7 @@ del Mar, tres clases, imparte Roberto Bada). Las diapositivas están en `docs/`
 
 ```bash
 uv sync                          # instala todo, incluido el grupo dev (pytest, ruff, streamlit)
-uv run pytest                    # tests (sin red; ~250, ~1,5 s)
+uv run pytest                    # tests (sin red; ~273, ~1,5 s)
 uv run ruff check --fix          # lint (reglas E, W, F, I, UP, B; línea de 100)
 uv run ruff format               # formato
 uv run litmar --help             # CLI
@@ -172,7 +172,8 @@ src/litmar/
   biblioteca.py      Biblioteca: dedup por DOI, a_bibtex/exportar_bibtex, a_csv,
                      guardar/cargar JSON (guardado atómico, carga con validación)
   busqueda.py        buscar_en_fuentes(): busca en varias fuentes, junta sin
-                     duplicar y recoge errores por fuente. La usan CLI y UI
+                     duplicar y recoge errores por fuente. La usan CLI y UI.
+                     mensaje_de_error(): error de una fuente sin la petición
   cli.py             argparse: buscar (--fuente, --desde, --guardar, --bibtex,
                      salida en tabla), exportar, revisar, ui
   configuracion.py   FUENTES, fuentes_disponibles(), crear_fuente(nombre),
@@ -180,6 +181,8 @@ src/litmar/
   flujo.py           grafo LangGraph de revisión: EstadoRevision, crear_flujo(),
                      describir_paso(), informe_markdown(), citados(); límites
                      MAX_CONSULTAS/MAX_SELECCIONADOS/MAX_REESCRITURAS
+  herramientas.py    @tool buscar_articulos(consulta, fuente, n) y listar_fuentes();
+                     MAX_RESULTADOS = 10; errores como texto; HERRAMIENTAS
   llm.py             crear_modelo(): LITMAR_MODELO → init_chat_model, con
                      InMemoryRateLimiter y ErrorDeConfiguracion si falta algo
   resumen.py         ResumenArticulo (Pydantic) y resumir(articulo, pregunta, modelo)
@@ -301,6 +304,11 @@ en `.env.example`.
   herramienta), que avisa y puede fallar en `claude-sonnet-5-5`. Pasa siempre
   `method="json_schema"`: lo admiten Anthropic y Gemini (en Gemini es el valor
   por defecto). Los modelos falsos de los tests aceptan `**opciones`.
+- **`load_dotenv()` sin ruta falla con `python - <<EOF`** (stdin): `find_dotenv`
+  necesita un fichero de script. En pruebas rápidas usa `load_dotenv(".env")`.
+- **Docstrings de `@tool`**: con `parse_docstring=True` (formato Google) la
+  primera línea, el resto y cada `Args` se convierten en la descripción que lee
+  el modelo; sin él, la descripción conserva la sangría del docstring.
 - **`Retry-After: 0`** es válido: comprobar con `is None`, no con `or`.
 - **`Biblioteca.guardar`** deja el JSON con permisos `0600` (lo crea
   `NamedTemporaryFile`). Conocido, pendiente.
