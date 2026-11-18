@@ -170,3 +170,14 @@ Diapositivas 36-39. `--modo agente` usa `create_deep_agent` con:
 - Se acepta el subagente `general-purpose` que añade Deep Agents (no puede
   buscar) antes que un perfil global por modelo. `--fuente` limita las fuentes
   en el código; `-n` es el máximo de artículos que elige el agente.
+
+### D-22 · La revisión en la UI reutiliza `flujo.revisar` y `agente.revisar` — 2026-11-18
+Diapositiva 40. Los bucles que imprimían en la CLI (`_con_flujo`, `_con_agente`)
+pasan a `flujo.revisar()` y `agente.revisar()`, que reciben una función
+`mostrar(linea)`: la CLI pasa `print` y la UI, `st.status(...).text`, que
+escribe cada paso en cuanto llega. La salida de la terminal no cambia. La UI no
+ofrece `--aprobar` (una pausa a mitad de un script de Streamlit exigiría otro
+diseño: guardar el grafo en la sesión y reanudar en otra ejecución); queda para
+la terminal. Si falta la configuración del modelo, aviso con la línea del `.env`
+y botón desactivado. `MAX_ARTICULOS_REVISION` repite `MAX_SELECCIONADOS` para
+no cargar LangGraph al abrir la UI; un test comprueba que coinciden.

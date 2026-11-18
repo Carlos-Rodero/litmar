@@ -286,48 +286,37 @@ def _revisar(args: argparse.Namespace) -> int:
     return 0
 
 
+def _mostrar(linea: str) -> None:
+    print(linea, flush=True)
+
+
 def _con_flujo(args: argparse.Namespace, modelo):
     from litmar import flujo
 
-    revision = flujo.crear_flujo(modelo, fuentes=args.fuente, n=args.n, desde=args.desde)
-    estado = flujo.estado_inicial(args.pregunta)
-    # "updates": lo que cambia cada nodo, para mostrarlo; "values": el estado completo.
-    for modo, datos in revision.stream(estado, stream_mode=["updates", "values"]):
-        if modo == "values":
-            estado = datos
-            continue
-        for nodo, cambios in datos.items():
-            print(f"> {nodo:<18} {flujo.describir_paso(nodo, cambios)}", flush=True)
-            for aviso in cambios.get("warnings", []):
-                print(f"  Aviso: {aviso}", file=sys.stderr)
-    return estado
+    return flujo.revisar(
+        modelo,
+        args.pregunta,
+        fuentes=args.fuente,
+        n=args.n,
+        desde=args.desde,
+        mostrar=_mostrar,
+        avisar=lambda aviso: print(aviso, file=sys.stderr),
+    )
 
 
 def _con_agente(args: argparse.Namespace, modelo):
-    from langgraph.types import Command
-
     from litmar import agente
 
-    registro = agente.Registro()
-    revisor = agente.crear_agente(
-        modelo, registro, fuentes=args.fuente, n=args.n, desde=args.desde, aprobar=args.aprobar
+    return agente.revisar(
+        modelo,
+        args.pregunta,
+        fuentes=args.fuente,
+        n=args.n,
+        desde=args.desde,
+        aprobar=args.aprobar,
+        mostrar=_mostrar,
+        decidir=_decidir,
     )
-    config = agente.configuracion()
-    narrador = agente.Narrador()
-    entrada = agente.entrada(args.pregunta)
-    while True:  # una vuelta por cada pausa para pedir aprobación
-        pendiente = None
-        for espacio, actualizacion in revisor.stream(
-            entrada, config, stream_mode="updates", subgraphs=True
-        ):
-            for linea in narrador.lineas(espacio, actualizacion):
-                print(linea, flush=True)
-            pendiente = agente.interrupcion(espacio, actualizacion) or pendiente
-        if pendiente is None:
-            break
-        decisiones = [_decidir(accion) for accion in pendiente["action_requests"]]
-        entrada = Command(resume={"decisions": decisiones})
-    return agente.estado_final(revisor, config, args.pregunta, registro)
 
 
 def _decidir(accion: dict) -> dict:

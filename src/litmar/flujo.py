@@ -282,6 +282,36 @@ def estado_inicial(pregunta: str) -> EstadoRevision:
     return {"question": pregunta, "rewrites": 0, "warnings": []}
 
 
+def revisar(
+    modelo: BaseChatModel,
+    pregunta: str,
+    *,
+    fuentes: Iterable[str] = ("OpenAlex",),
+    n: int = 6,
+    desde: int | None = None,
+    mostrar: Callable[[str], None] = lambda linea: None,
+    avisar: Callable[[str], None] | None = None,
+) -> EstadoRevision:
+    """Ejecuta el flujo completo y devuelve el estado final.
+
+    Cada paso se pasa a `mostrar` en cuanto termina (la CLI lo imprime, la UI lo
+    escribe en pantalla); los avisos, a `avisar` (por defecto, también a `mostrar`).
+    """
+    avisar = avisar or mostrar
+    flujo = crear_flujo(modelo, fuentes=fuentes, n=n, desde=desde)
+    estado = estado_inicial(pregunta)
+    # "updates": lo que cambia cada nodo, para mostrarlo; "values": el estado completo.
+    for modo, datos in flujo.stream(estado, stream_mode=["updates", "values"]):
+        if modo == "values":
+            estado = datos
+            continue
+        for nodo, cambios in datos.items():
+            mostrar(f"> {nodo:<18} {describir_paso(nodo, cambios)}")
+            for aviso in cambios.get("warnings", []):
+                avisar(f"  Aviso: {aviso}")
+    return estado
+
+
 def _plural(numero: int, singular: str, plural: str) -> str:
     return f"{numero} {singular if numero == 1 else plural}"
 
@@ -313,6 +343,16 @@ def citados(estado: EstadoRevision) -> Biblioteca:
     """Los artículos citados (y verificados) en el informe, en orden de aparición."""
     por_doi = {articulo.doi: articulo for articulo in estado.get("selected", [])}
     return Biblioteca(por_doi[doi] for doi in estado.get("cited", []) if doi in por_doi)
+
+
+_CITA_ENTRE_CORCHETES = re.compile(r"\[doi:\s*(10\.[\d.]+/[^\s;,\]\)]+)\]", re.IGNORECASE)
+
+
+def enlazar_dois(texto: str) -> str:
+    """Convierte cada «[doi:10.1234/abc]» en un enlace Markdown a doi.org."""
+    return _CITA_ENTRE_CORCHETES.sub(
+        lambda c: f"[doi:{c.group(1)}](https://doi.org/{c.group(1)})", texto
+    )
 
 
 def informe_markdown(estado: EstadoRevision) -> str:

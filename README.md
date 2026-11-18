@@ -51,11 +51,25 @@ tienen prioridad sobre las del fichero.
 uv run litmar ui
 ```
 
-Abre en el navegador una página para:
+Abre en el navegador una página con dos pestañas.
+
+**Búsqueda**:
 - escribir la búsqueda, elegir las fuentes y el número de resultados por fuente;
 - ver una tabla con año, citas, autores, título y enlace al DOI, sin duplicados
   entre fuentes;
 - descargar los resultados en BibTeX o en CSV (el CSV se abre bien en Excel).
+
+**Revisión** (lo mismo que `litmar revisar`):
+- escribir una pregunta de investigación y elegir el modo (flujo o agente), las
+  fuentes y el número de artículos;
+- ver cada paso en vivo mientras trabaja (los nodos del flujo o las llamadas del
+  agente);
+- leer el informe con los DOI citados como enlaces a doi.org y descargarlo junto
+  con el BibTeX de lo citado.
+
+Si falta `LITMAR_MODELO` o la clave de su proveedor, la pestaña dice qué línea
+añadir al `.env` y el botón «Revisar» queda desactivado. La aprobación de
+búsquedas (`--aprobar`) solo está en la terminal.
 
 Si una fuente falla, se muestra el error y se siguen viendo los resultados de las
 demás. Las opciones adicionales se pasan a Streamlit, por ejemplo

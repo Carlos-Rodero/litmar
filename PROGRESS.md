@@ -8,15 +8,15 @@ el registro solo crece (entradas nuevas arriba).
 
 _Actualizado: 2026-11-18._
 
-- **`main`**: al día con `origin/main`. Último trabajo: el agente con Deep Agents
-  (paso 8, ver registro).
+- **`main`**: al día con `origin/main`. Último trabajo: el arreglo de `--aprobar` con
+  buscadores en paralelo y la pestaña «Revisión» de la UI (paso 9).
 - **Curso**: Clase 1 (*Busca*, 17/11/2026) completa respecto a las
   diapositivas. La siguiente es la Clase 2 (*Lee*), el **18/11/2026**; sus
   diapositivas están en `docs/Clase2.pdf` y su plan, abajo. Se está
-  construyendo como ensayo, encargo a encargo: hechos los pasos 1 a 6 y el 8 (`.env.example`, `resumir`, `llm.py`,
-  Práctica 1, flujo LangGraph, herramientas, agente); falta la votación (7)
-  y la pestaña de la UI (9), probados con un modelo real (Anthropic).
-- **Calidad**: 291 tests pasan, sin red, en ~1,5 s; `ruff check` y
+  construyendo como ensayo, encargo a encargo: hechos los pasos 1 a 6, el 8 y el 9 (`.env.example`, `resumir`, `llm.py`,
+  Práctica 1, flujo LangGraph, herramientas, agente, pestaña «Revisión»); la
+  votación (7) se hace en clase, probados con un modelo real (Anthropic).
+- **Calidad**: 299 tests pasan, sin red, en ~1,5 s; `ruff check` y
   `ruff format --check` en verde.
 - **PRs abiertas**: ninguna.
 - **Funciona**:
@@ -26,8 +26,9 @@ _Actualizado: 2026-11-18._
   - CLI: `litmar buscar "…" --fuente openalex,europepmc --desde 2020 --bibtex
     refs.bib --guardar biblioteca.json`, con salida en tabla; `litmar exportar`;
     `litmar ui`;
-  - interfaz web con Streamlit: búsqueda en varias fuentes, tabla y descargas
-    BibTeX/CSV;
+  - interfaz web con Streamlit: pestaña «Búsqueda» (varias fuentes, tabla,
+    descargas BibTeX/CSV) y pestaña «Revisión» (flujo o agente, pasos en vivo,
+    informe con DOI enlazados, descargas);
   - `resumir(articulo, pregunta, modelo)` → `ResumenArticulo` (Pydantic,
     `with_structured_output`), en `src/litmar/resumen.py`;
   - `crear_modelo()` en `src/litmar/llm.py`: modelo de `LITMAR_MODELO` con
@@ -53,8 +54,9 @@ Por orden de prioridad sugerido; nada está empezado.
    Falta ver en una sesión real que `Stop` pide anotar el progreso cuando hay
    trabajo sin registrar (los casos se probaron a mano con un repo de prueba).
 1. [ ] **Clase 2**: seguir el «Plan de la Clase 2» (abajo). El usuario lanza
-   los prompts de las diapositivas uno a uno (ensayo). Siguiente: la
-   pestaña «Revisión» de la UI (paso 9); la votación (paso 7) se hace en clase. Pendiente: probar con Gemini (solo se ha probado con
+   los prompts de las diapositivas uno a uno (ensayo). La Clase 2
+   está construida; queda la votación (paso 7, en clase) y, para la Clase 3,
+   esperar sus diapositivas en `docs/`. Pendiente: probar con Gemini (solo se ha probado con
    Anthropic). Ojo: con el límite por defecto la primera llamada espera ~6 s (el
    limitador empieza vacío).
 2. [ ] **Permisos del JSON**: `Biblioteca.guardar` deja `0600`; aplicar la umask
@@ -116,7 +118,7 @@ la documentación actual de LangChain, LangGraph y deepagents antes de programar
    Subagente buscador. `--aprobar` con `interrupt_on` para pedir permiso antes de
    buscar. Límite de pasos (si se alcanza, escribir hasta dónde llegó) con test de
    modelo falso.
-9. [ ] **Pestaña «Revisión» en la UI**: pregunta, modo flujo/agente, fuentes y
+9. [x] **Pestaña «Revisión» en la UI** (18/11, D-22): pregunta, modo flujo/agente, fuentes y
    número de artículos; pasos en vivo; informe con los DOI como enlaces; mensaje
    claro si falta la clave. Reutilizar las funciones de revisión (refactor
    mínimo si imprimen por pantalla) sin romper la terminal.
@@ -158,6 +160,36 @@ contra esto.
   proponer su hook `_antes_de_peticion` en `Fuente`.
 
 ## Registro de sesiones
+
+### 2026-11-18 — Sesión 2: pestaña «Revisión» en la UI (Clase 2, encargo 9)
+
+- Prompt literal de la diapositiva 40. Refactor mínimo (D-22): `flujo.revisar()`
+  y `agente.revisar()` con `mostrar`; la CLI las usa y su salida no cambia.
+- `ui.py`: `app()` con pestañas; `busqueda()` (lo de antes) y `revision()`:
+  pregunta, modo, fuentes, número de artículos; pasos en vivo con `st.status`;
+  informe con `flujo.enlazar_dois` (DOI → enlaces) y descargas; aviso del
+  `.env` y botón desactivado sin modelo. Sin `--aprobar` en la UI.
+- Tests: 6 nuevos en `tests/test_ui.py` (sin modelo, flujo completo con modelo
+  falso, pregunta vacía, agente con `agente.revisar` sustituido, límite,
+  `enlazar_dois`). 299 tests.
+- Prueba real: la pestaña con `AppTest` y el modelo del `.env` (flujo, Europe
+  PMC, 3 artículos): 6 pasos, 3 citas enlazadas, 46 s. `litmar ui --server.headless
+  true` arranca (health ok). No se ha visto en un navegador.
+
+### 2026-11-18 — Sesión 2: arreglo de `--aprobar` con buscadores en paralelo
+
+- El usuario probó `--modo agente --aprobar` y falló tras aprobar dos
+  búsquedas: «When there are multiple pending interrupts, you must specify the
+  interrupt id when resuming». El agente lanzó dos buscadores a la vez, cada uno
+  con su pausa; el código solo guardaba la última y reanudaba sin id.
+- Arreglo: `agente.ejecutar()` recoge todas las interrupciones del principal
+  por `id`, pide una decisión por cada búsqueda y reanuda con
+  `Command(resume={id: {"decisions": [...]}})`. El bucle, que estaba duplicado
+  en la CLI y en los tests (por eso los tests no lo vieron), vive ahora solo
+  ahí. Trampa en `AGENTS.md` §9.
+- 2 tests de regresión (dos encargos en paralelo, aprobar uno y rechazar otro, y
+  la CLI); se comprobó que fallan con el código anterior con el mismo error.
+  293 tests.
 
 ### 2026-11-18 — Sesión 2: agente con Deep Agents (Clase 2, encargo 8)
 

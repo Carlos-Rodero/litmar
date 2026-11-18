@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import threading
 import uuid
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -42,6 +42,7 @@ from langchain.agents.middleware import ModelCallLimitMiddleware, TodoListMiddle
 from langchain_core.messages import AIMessage
 from langchain_core.tools import StructuredTool
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.types import Command
 
 from litmar import herramientas
 from litmar.articulo import Articulo
@@ -271,15 +272,73 @@ def _una_linea(texto: str, largo: int = 90) -> str:
     return texto if len(texto) <= largo else texto[: largo - 1] + "…"
 
 
-def interrupcion(espacio: tuple[str, ...], actualizacion: dict[str, Any]) -> dict | None:
-    """La petición de aprobación pendiente, si esta actualización la trae.
+def ejecutar(
+    agente,
+    config: dict[str, Any],
+    pregunta: str,
+    *,
+    mostrar: Callable[[str], None],
+    decidir: Callable[[dict[str, Any]], dict[str, Any]],
+) -> None:
+    """Ejecuta el agente hasta el final, mostrando cada paso y pidiendo aprobaciones.
 
-    Una interrupción de un subagente aparece dos veces (en su espacio y en el del
-    principal); solo cuenta la del principal, que es desde donde se reanuda.
+    `mostrar` recibe cada línea del `Narrador`; `decidir` recibe cada búsqueda que
+    espera aprobación (`{"name", "args", …}`) y devuelve la decisión
+    (`{"type": "approve"}`, `"reject"` o `"edit"`).
+
+    Con `aprobar=True` el grafo se detiene antes de cada búsqueda. Si el agente
+    lanzó varios buscadores a la vez, puede haber varias pausas pendientes: se
+    contesta a todas y se reanuda indicando a qué interrupción va cada respuesta
+    (por su `id`). Una interrupción de un subagente llega dos veces al stream (en
+    su espacio y en el del principal); solo cuenta la del principal.
     """
-    if espacio or "__interrupt__" not in actualizacion:
-        return None
-    return actualizacion["__interrupt__"][0].value
+    narrador = Narrador()
+    entrada_: Any = entrada(pregunta)
+    while True:  # una vuelta por cada pausa para pedir aprobación
+        pendientes: dict[str, Any] = {}
+        for espacio, actualizacion in agente.stream(
+            entrada_, config, stream_mode="updates", subgraphs=True
+        ):
+            for linea in narrador.lineas(espacio, actualizacion):
+                mostrar(linea)
+            if not espacio:
+                for interrupcion in actualizacion.get("__interrupt__", ()):
+                    pendientes[interrupcion.id] = interrupcion
+        if not pendientes:
+            return
+        respuestas = {
+            id_: {"decisions": [decidir(accion) for accion in i.value["action_requests"]]}
+            for id_, i in pendientes.items()
+        }
+        entrada_ = Command(resume=respuestas)
+
+
+def revisar(
+    modelo: BaseChatModel,
+    pregunta: str,
+    *,
+    fuentes: Iterable[str] = ("OpenAlex", "Europe PMC"),
+    n: int = 6,
+    desde: int | None = None,
+    aprobar: bool = False,
+    mostrar: Callable[[str], None] = lambda linea: None,
+    decidir: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
+) -> EstadoRevision:
+    """Crea el agente, lo ejecuta y devuelve el estado final con las citas comprobadas.
+
+    Sin `decidir`, se aprueba todo (solo se usa con `aprobar=True`).
+    """
+    registro = Registro()
+    revisor = crear_agente(modelo, registro, fuentes=fuentes, n=n, desde=desde, aprobar=aprobar)
+    config = configuracion()
+    ejecutar(
+        revisor,
+        config,
+        pregunta,
+        mostrar=mostrar,
+        decidir=decidir or (lambda accion: {"type": "approve"}),
+    )
+    return estado_final(revisor, config, pregunta, registro)
 
 
 def estado_final(

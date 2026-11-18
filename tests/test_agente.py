@@ -114,26 +114,17 @@ def fuentes_falsas(monkeypatch, articulos):
 
 def ejecutar(modelo, *, aprobar=False, decisiones=(), fuentes=("OpenAlex", "Europe PMC")):
     """Ejecuta el agente; `decisiones` responde, en orden, a cada petición de aprobación."""
-    from langgraph.types import Command
-
     registro = agente.Registro()
     revisor = agente.crear_agente(modelo, registro, fuentes=fuentes, aprobar=aprobar)
     config = agente.configuracion()
-    narrador = agente.Narrador()
     lineas, peticiones = [], []
-    entrada = agente.entrada(PREGUNTA)
     decisiones = list(decisiones)
-    while True:
-        pendiente = None
-        for espacio, actualizacion in revisor.stream(
-            entrada, config, stream_mode="updates", subgraphs=True
-        ):
-            lineas += narrador.lineas(espacio, actualizacion)
-            pendiente = agente.interrupcion(espacio, actualizacion) or pendiente
-        if pendiente is None:
-            break
-        peticiones.append(pendiente["action_requests"])
-        entrada = Command(resume={"decisions": [decisiones.pop(0)]})
+
+    def decidir(accion):
+        peticiones.append(accion)
+        return decisiones.pop(0)
+
+    agente.ejecutar(revisor, config, PREGUNTA, mostrar=lineas.append, decidir=decidir)
     return lineas, agente.estado_final(revisor, config, PREGUNTA, registro), registro, peticiones
 
 
@@ -273,8 +264,8 @@ def test_aprobar_pide_permiso_antes_de_buscar():
         modelo, aprobar=True, decisiones=[{"type": "approve"}]
     )
 
-    assert [p[0]["name"] for p in peticiones] == ["buscar_articulos"]
-    assert peticiones[0][0]["args"]["consulta"] == "posidonia warming"
+    assert [p["name"] for p in peticiones] == ["buscar_articulos"]
+    assert peticiones[0]["args"]["consulta"] == "posidonia warming"
     assert registro.searches == ["posidonia warming (Europe PMC)"]
     assert estado["cited"] == ["10.1/b"]
 
@@ -388,3 +379,73 @@ def test_cli_aprobar_editar(modelo_cli, monkeypatch, tmp_path):
 def test_cli_aprobar_solo_con_agente(capsys):
     assert cli.main(["revisar", PREGUNTA, "--aprobar"]) == 1
     assert "--aprobar solo se usa con --modo agente" in capsys.readouterr().err
+
+
+def dos_encargos_en_paralelo(informe):
+    """El principal lanza dos buscadores a la vez: dos pausas de aprobación pendientes."""
+    encargos = AIMessage(
+        content="",
+        tool_calls=[
+            {
+                "name": "task",
+                "args": {"subagent_type": "buscador", "description": f"Encargo {i}"},
+                "id": f"t{i}",
+                "type": "tool_call",
+            }
+            for i in (1, 2)
+        ],
+    )
+    return [
+        encargos,
+        # los dos buscadores (en paralelo; cada uno toma el siguiente mensaje)
+        llamada("buscar_articulos", {"consulta": "uno", "fuente": "OpenAlex", "n": 2}, "b1"),
+        llamada("buscar_articulos", {"consulta": "dos", "fuente": "Europe PMC", "n": 2}, "b2"),
+        AIMessage(content="Hecho: [doi:10.1/b]."),
+        AIMessage(content="Hecho: [doi:10.1/c]."),
+        # principal
+        llamada("write_file", {"file_path": "/informe.md", "content": informe}, "w"),
+        AIMessage(content="Informe escrito."),
+    ]
+
+
+def test_aprobar_dos_busquedas_pendientes_a_la_vez():
+    # Fallo real (18/11): con dos buscadores en paralelo, reanudar sin el id de
+    # cada interrupción daba «multiple pending interrupts».
+    modelo = ModeloGuion(guion=dos_encargos_en_paralelo("[doi:10.1/b] y [doi:10.1/c]."))
+
+    _, estado, registro, peticiones = ejecutar(
+        modelo, aprobar=True, decisiones=[{"type": "approve"}, {"type": "reject"}]
+    )
+
+    assert len(peticiones) == 2
+    assert len(registro.searches) == 1  # una aprobada, otra rechazada
+    assert modelo.guion == []
+    # la búsqueda aprobada devolvió los dos artículos de la fuente falsa
+    assert set(estado["cited"]) == {"10.1/b", "10.1/c"}
+
+
+def test_cli_aprobar_dos_busquedas_a_la_vez(monkeypatch, tmp_path):
+    modelo = ModeloGuion(guion=dos_encargos_en_paralelo("[doi:10.1/b] y [doi:10.1/c]."))
+    monkeypatch.setattr(llm, "crear_modelo", lambda: modelo)
+    monkeypatch.setattr("builtins.input", lambda _: "s")
+    informe = tmp_path / "i.md"
+
+    codigo = cli.main(
+        [
+            "revisar",
+            PREGUNTA,
+            "--modo",
+            "agente",
+            "--aprobar",
+            "--informe",
+            str(informe),
+            "--bibtex",
+            str(tmp_path / "c.bib"),
+        ]
+    )
+
+    assert codigo == 0
+    texto = informe.read_text(encoding="utf-8")
+    assert "uno (OpenAlex)" in texto
+    assert "dos (Europe PMC)" in texto
+    assert NO_VERIFICADA not in texto
