@@ -123,10 +123,13 @@ del Mar, tres clases, imparte Roberto Bada). Las diapositivas están en `docs/`
     solo cita artículos reales, más el BibTeX de lo citado». El plan detallado,
     con los prompts y lo que se comprueba, está en `PROGRESS.md` («Plan de la
     Clase 2»).
-  - Clase 3 · *Se comparte* (previsiblemente 19/11/2026: «mañana» en la última
-    diapositiva de la Clase 2): exponer `buscar` y `revisar` con FastAPI y
-    empaquetar con Docker. Aún no hay diapositivas: cuando aparezcan en `docs/`,
-    léelas antes de empezar y vuelca lo relevante aquí y en `PROGRESS.md`.
+  - Clase 3 · *APIs, reproducibilidad y transferencia* (19/11/2026,
+    `docs/Clase3.pdf`, 35 diapositivas): tu propia API con FastAPI (rutas,
+    parámetros, modelos de entrada y salida, validación, documentación
+    automática), una web en HTML y JavaScript que usa esa API, Docker (imágenes,
+    contenedores, capas), reproducibilidad (variables de entorno, compose,
+    desarrollo dentro del contenedor) y cierre. Antes de empezar, léelas enteras
+    y vuelca el plan detallado en `PROGRESS.md` («Plan de la Clase 3»).
   - **Principios de la Clase 2** que el código debe respetar: lo que se pueda
     hacer o verificar con código no se le deja al modelo (p. ej. comprobar que
     cada DOI citado está entre los seleccionados); flujo antes que agente; límites

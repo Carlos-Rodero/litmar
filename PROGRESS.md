@@ -55,8 +55,9 @@ Por orden de prioridad sugerido; nada está empezado.
    trabajo sin registrar (los casos se probaron a mano con un repo de prueba).
 1. [ ] **Clase 2**: seguir el «Plan de la Clase 2» (abajo). El usuario lanza
    los prompts de las diapositivas uno a uno (ensayo). La Clase 2
-   está construida; queda la votación (paso 7, en clase) y, para la Clase 3,
-   esperar sus diapositivas en `docs/`. Pendiente: probar con Gemini (solo se ha probado con
+   está construida; queda la votación (paso 7, en clase). Las diapositivas de
+   la Clase 3 ya están en `docs/Clase3.pdf`: falta leerlas enteras y escribir
+   aquí el «Plan de la Clase 3». Pendiente: probar con Gemini (solo se ha probado con
    Anthropic). Ojo: con el límite por defecto la primera llamada espera ~6 s (el
    limitador empieza vacío).
 2. [ ] **Permisos del JSON**: `Biblioteca.guardar` deja `0600`; aplicar la umask
@@ -160,6 +161,14 @@ contra esto.
   proponer su hook `_antes_de_peticion` en `Fuente`.
 
 ## Registro de sesiones
+
+### 2026-11-18 — Sesión 2: diapositivas de la Clase 3
+
+- Añadido `docs/Clase3.pdf` (*APIs, reproducibilidad y transferencia*,
+  19/11/2026, 35 diapositivas). Solo se han leído la portada y el índice:
+  FastAPI, una web en HTML/JS sobre la API, Docker, compose y cierre. Hoja de
+  ruta de `AGENTS.md` actualizada. Pendiente: leerlas enteras y escribir el
+  «Plan de la Clase 3».
 
 ### 2026-11-18 — Sesión 2: pestaña «Revisión» en la UI (Clase 2, encargo 9)
 
