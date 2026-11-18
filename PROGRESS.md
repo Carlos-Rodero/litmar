@@ -8,14 +8,13 @@ el registro solo crece (entradas nuevas arriba).
 
 _Actualizado: 2026-11-18._
 
-- **`main`**: al día con `origin/main`. Último trabajo: la CLI de la demo de la
-  Clase 1 (`--fuente`, `--desde`, `--bibtex`, tabla), ruff, y las diapositivas
-  de la Clase 2 en `docs/Clase2.pdf`.
+- **`main`**: al día con `origin/main`; **sin commit** los encargos 2 y 3 de la
+  Clase 2 (`resumir` y `llm.py`, ver registro de hoy).
 - **Curso**: Clase 1 (*Busca*, 17/11/2026) completa respecto a las
   diapositivas. La siguiente es la Clase 2 (*Lee*), el **18/11/2026**; sus
-  diapositivas están en `docs/Clase2.pdf` y su plan, abajo. **Nada de la Clase 2
-  está empezado.**
-- **Calidad**: 204 tests pasan, sin red, en menos de 1 s; `ruff check` y
+  diapositivas están en `docs/Clase2.pdf` y su plan, abajo. Se está
+  construyendo como ensayo, encargo a encargo: hechos los pasos 1 (`.env.example`), 2 (`resumir`) y 3 (`llm.py`).
+- **Calidad**: 227 tests pasan, sin red, en ~1 s; `ruff check` y
   `ruff format --check` en verde.
 - **PRs abiertas**: ninguna.
 - **Funciona**:
@@ -27,6 +26,10 @@ _Actualizado: 2026-11-18._
     `litmar ui`;
   - interfaz web con Streamlit: búsqueda en varias fuentes, tabla y descargas
     BibTeX/CSV;
+  - `resumir(articulo, pregunta, modelo)` → `ResumenArticulo` (Pydantic,
+    `with_structured_output`), en `src/litmar/resumen.py`;
+  - `crear_modelo()` en `src/litmar/llm.py`: modelo de `LITMAR_MODELO` con
+    `init_chat_model`, límite de llamadas por minuto y errores claros;
   - configuración por `.env` (plantilla en `.env.example`; todo opcional salvo
     Zotero).
 
@@ -38,12 +41,13 @@ Por orden de prioridad sugerido; nada está empezado.
    18/11/2026, al reanudar la sesión, inyectó el estado de este fichero y de git.
    Falta ver en una sesión real que `Stop` pide anotar el progreso cuando hay
    trabajo sin registrar (los casos se probaron a mano con un repo de prueba).
-1. [ ] **Clase 2**: seguir el «Plan de la Clase 2» (abajo). **Antes de nada,
-   preguntar al usuario** si quiere construirlo ya (como ensayo, igual que se
-   hizo con la Clase 1 lanzando los prompts de las diapositivas en estas
-   sesiones) o dejarlo para hacerlo en directo en clase. Primer paso en
-   cualquier caso: añadir a `.env.example` `LITMAR_MODELO`, `GOOGLE_API_KEY` y
-   `ANTHROPIC_API_KEY` (D-14).
+1. [ ] **Clase 2**: seguir el «Plan de la Clase 2» (abajo). El usuario lanza
+   los prompts de las diapositivas uno a uno (ensayo). Pendiente: **probar
+   `resumir` con un modelo real** («En qué fijarse» 4: compararlo con el resumen
+   original). El `.env` del usuario aún no tiene `LITMAR_MODELO` (18/11); hay un
+   script de prueba fácil de rehacer: carga `.env`, busca en Europe PMC y
+   resume un artículo. Ojo: con el límite por defecto la primera llamada espera
+   ~6 s (el limitador empieza vacío).
 2. [ ] **Permisos del JSON**: `Biblioteca.guardar` deja `0600`; aplicar la umask
    con `os.chmod` antes de `os.replace`. Propuesto en la PR #10.
 3. [ ] **Mover el helper `cliente` de `tests/test_fuentes.py` a `conftest.py`**,
@@ -61,16 +65,16 @@ diapositiva una columna «En qué fijarse»: el resultado debe superarla. Consul
 la documentación actual de LangChain, LangGraph y deepagents antes de programar
 (cambian rápido) y proponer plan antes de código.
 
-1. [ ] **`.env`** (diapositiva 4): `LITMAR_MODELO=google_genai:gemini-3.8-flash`
+1. [x] **`.env`** (diapositiva 4; en `.env.example` el 18/11): `LITMAR_MODELO=google_genai:gemini-3.8-flash`
    + `GOOGLE_API_KEY`, o `anthropic:claude-sonnet-5-5` + `ANTHROPIC_API_KEY`. El
    plan gratuito de Gemini tiene límites por minuto (429) y Google puede usar lo
    enviado: solo datos públicos.
-2. [ ] **Resumen estructurado**: `resumir(articulo, pregunta, modelo)` → objeto
+2. [x] **Resumen estructurado** (18/11, `resumen.py`; probar con modelo real): `resumir(articulo, pregunta, modelo)` → objeto
    Pydantic `ResumenArticulo` (objetivo, método, hallazgos, relevancia 1-5
    respecto a la pregunta, limitaciones) con `with_structured_output`. Cada
    campo con descripción (el modelo la lee). Sin resumen → no llamar al modelo.
    Test con modelo falso, sin clave ni red.
-3. [ ] **Modelo intercambiable**: `src/litmar/llm.py` con `crear_modelo()` que lee
+3. [x] **Modelo intercambiable** (18/11, `llm.py`): `src/litmar/llm.py` con `crear_modelo()` que lee
    `LITMAR_MODELO` y usa `init_chat_model`; límite de llamadas por minuto para el
    plan gratuito; si falta la clave, error claro que diga qué poner en el `.env`.
    Ningún nombre de modelo ni clave en el código; cambiar de modelo = cambiar el
@@ -133,6 +137,41 @@ contra esto.
   proponer su hook `_antes_de_peticion` en `Fuente`.
 
 ## Registro de sesiones
+
+### 2026-11-18 — Sesión 2: `llm.py` (Clase 2, encargo 3)
+
+- Prompt literal de la diapositiva 12. `src/litmar/llm.py`: `crear_modelo()` lee
+  `LITMAR_MODELO` (formato `proveedor:modelo`), comprueba la clave del proveedor
+  (`GOOGLE_API_KEY`/`GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`) y
+  llama a `init_chat_model` con un `InMemoryRateLimiter`. Si falta algo,
+  `ErrorDeConfiguracion` con la línea exacta que hay que añadir al `.env`.
+- Límite: 10 llamadas/min por defecto, `LITMAR_LLAMADAS_POR_MINUTO` (0 = sin
+  límite). Decisiones D-15 (dependencias) y D-16 (límite, `.env` no se carga en
+  `llm.py`).
+- Dependencias nuevas: `langchain`, `langchain-google-genai`,
+  `langchain-anthropic` («En qué fijarse» 3).
+- `.env.example`: sección del modelo de lenguaje. README: tabla de variables y
+  ejemplo con `crear_modelo`.
+- `tests/test_llm.py` (16 tests): crean el objeto del modelo con claves falsas,
+  sin llamarlo. 227 tests.
+- Prueba real: no se pudo, el `.env` no tiene `LITMAR_MODELO` (se vio el
+  mensaje de error, que es el punto 2 de la diapositiva).
+
+### 2026-11-18 — Sesión 2: `resumir` (Clase 2, encargo 2)
+
+- Prompt literal de la diapositiva 11. Nuevo `src/litmar/resumen.py`:
+  `ResumenArticulo` (Pydantic) con `objective`, `method`, `findings` (lista),
+  `relevance` (1-5, validado con `ge`/`le`) y `limitations`, todos con
+  descripción porque el modelo las lee. `resumir()` devuelve `None` sin llamar
+  al modelo si no hay resumen, y las instrucciones piden usar solo título y
+  resumen y escribir «No consta en el resumen.» en vez de inventar.
+- Campos en inglés aunque la diapositiva los nombra en español: convención D-2.
+- El modelo se recibe como parámetro (lo creará `llm.py`); `resumen.py` no lee
+  claves ni conoce proveedores. Dependencias nuevas: `pydantic` y
+  `langchain-core` (de ahí viene `with_structured_output`).
+- `tests/test_resumen.py`: modelo falso propio (solo `with_structured_output` e
+  `invoke`), sin clave ni red. 211 tests. Sección en el README.
+- Sin probar con un modelo real: falta `llm.py` (siguiente encargo).
 
 ### 2026-11-18 — Sesión 2: comprobación de los hooks
 

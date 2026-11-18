@@ -28,8 +28,9 @@ es un fichero `.env` en el directorio desde el que ejecutas `litmar`:
 cp .env.example .env    # y rellena lo que necesites
 ```
 
-Todo es opcional: sin configurar nada funcionan OpenAlex, Crossref, Europe PMC,
-arXiv y PANGAEA. `.env.example` explica cada variable:
+Para buscar todo es opcional: sin configurar nada funcionan OpenAlex, Crossref,
+Europe PMC, arXiv y PANGAEA. Para resumir con un modelo de lenguaje hacen falta
+`LITMAR_MODELO` y la clave de su proveedor. `.env.example` explica cada variable:
 
 | Variable | Fuente | Para qué |
 | --- | --- | --- |
@@ -37,6 +38,9 @@ arXiv y PANGAEA. `.env.example` explica cada variable:
 | `CROSSREF_MAILTO` | Crossref | Entrar en el *polite pool*, con límites más altos |
 | `ZOTERO_USER_ID` o `ZOTERO_GROUP_ID` | Zotero | Biblioteca en la que buscar (sin ella, Zotero no aparece) |
 | `ZOTERO_API_KEY` | Zotero | Solo para bibliotecas privadas |
+| `LITMAR_MODELO` | Modelo de lenguaje | `proveedor:modelo`, p. ej. `google_genai:…` o `anthropic:…` |
+| `GOOGLE_API_KEY` o `ANTHROPIC_API_KEY` | Modelo de lenguaje | La clave del proveedor elegido |
+| `LITMAR_LLAMADAS_POR_MINUTO` | Modelo de lenguaje | Límite de llamadas (10 por defecto, para el plan gratuito de Gemini; 0 = sin límite) |
 
 `.env` no se sube a git. Las variables que ya estén definidas en el entorno
 tienen prioridad sobre las del fichero.
@@ -157,6 +161,31 @@ El JSON es una lista de artículos con `title`, `authors`, `year`, `doi`,
 `journal`, `abstract` y `citations`. Conserva los caracteres Unicode y el orden
 de inserción. Al cargar, `abstract` y `citations` son opcionales y toman los
 valores `""` y `0`.
+
+### Resumen estructurado con un modelo de lenguaje
+
+`resumir(articulo, pregunta, modelo)` le pide al modelo un `ResumenArticulo`
+(objetivo, método, hallazgos, relevancia de 1 a 5 para la pregunta y
+limitaciones) con `with_structured_output`. Así la respuesta llega como un
+objeto Pydantic ya validado, no como texto. Si el artículo no tiene resumen,
+devuelve `None` sin llamar al modelo. Sirve cualquier modelo de chat de
+LangChain; `crear_modelo()` crea el que diga `LITMAR_MODELO`, con el límite de
+llamadas por minuto, y si falta algo en el `.env` lanza `ErrorDeConfiguracion`
+con un mensaje que dice qué añadir.
+
+```python
+from dotenv import load_dotenv
+
+from litmar.llm import crear_modelo
+from litmar.resumen import resumir
+
+load_dotenv()  # el comando `litmar` lo hace solo; un script propio, no
+modelo = crear_modelo()
+
+resumen = resumir(articulo, "¿Cuánto carbono almacena Posidonia?", modelo)
+if resumen:
+    print(resumen.relevance, resumen.findings)
+```
 
 ## Fuentes
 

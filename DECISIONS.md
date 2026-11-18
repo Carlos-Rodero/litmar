@@ -86,3 +86,20 @@ el nombre estándar de cada proveedor (`GOOGLE_API_KEY`, `ANTHROPIC_API_KEY`),
 que es el que leen las librerías de LangChain. Sustituye a la idea de
 `GEMINI_API_KEY` de la Clase 1. Las diapositivas también nombran
 `CROSSREF_MAILTO`, así que no se renombra a `LITMAR_EMAIL`.
+
+### D-15 · LangChain y los dos proveedores como dependencias normales — 2026-11-18
+`langchain` (por `init_chat_model`), `langchain-core`, `langchain-google-genai`
+y `langchain-anthropic` van en `dependencies`, no en un extra opcional como
+Streamlit (D-9): resumir y revisar son el centro de la Clase 2 y los alumnos
+deben poder usar Gemini o Claude tras `uv sync`, sin pasos extra. Otro proveedor
+se añade con `uv add langchain-<proveedor>` y su variable de clave en
+`llm._CLAVES` (si no está, `crear_modelo` deja que LangChain lo compruebe).
+
+### D-16 · Límite de llamadas por minuto en el modelo, configurable — 2026-11-18
+`crear_modelo()` pasa un `InMemoryRateLimiter` de LangChain a `init_chat_model`:
+10 llamadas por minuto por defecto (plan gratuito de Gemini), cambiable con
+`LITMAR_LLAMADAS_POR_MINUTO` (0 = sin límite, p. ej. con una clave de pago).
+`max_bucket_size=1` espacia las llamadas en vez de permitir ráfagas. La clave se
+comprueba antes de crear el modelo para dar un error que diga qué línea añadir
+al `.env`. Como D-8, `llm.py` lee el entorno y no carga `.env`: lo hace el
+comando `litmar`; los scripts propios llaman a `load_dotenv()`.

@@ -144,7 +144,7 @@ del Mar, tres clases, imparte Roberto Bada). Las diapositivas están en `docs/`
 
 ```bash
 uv sync                          # instala todo, incluido el grupo dev (pytest, ruff, streamlit)
-uv run pytest                    # tests (sin red; ~204, menos de 1 s)
+uv run pytest                    # tests (sin red; ~227, ~1 s)
 uv run ruff check --fix          # lint (reglas E, W, F, I, UP, B; línea de 100)
 uv run ruff format               # formato
 uv run litmar --help             # CLI
@@ -175,6 +175,10 @@ src/litmar/
                      salida en tabla), exportar, ui
   configuracion.py   FUENTES, fuentes_disponibles(), crear_fuente(nombre),
                      id_fuente()/nombre_fuente() («Europe PMC» ↔ «europepmc»)
+  llm.py             crear_modelo(): LITMAR_MODELO → init_chat_model, con
+                     InMemoryRateLimiter y ErrorDeConfiguracion si falta algo
+  resumen.py         ResumenArticulo (Pydantic) y resumir(articulo, pregunta, modelo)
+                     con with_structured_output; sin resumen → None, sin llamar al modelo
   ui.py              Streamlit: filas(), app()
   fuentes/
     base.py          Fuente (ABC): buscar(consulta, n, *, desde=None) abstracto;
