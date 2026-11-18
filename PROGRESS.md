@@ -8,14 +8,14 @@ el registro solo crece (entradas nuevas arriba).
 
 _Actualizado: 2026-11-18._
 
-- **`main`**: al día con `origin/main`. Último trabajo: el flujo LangGraph, `litmar revisar` y
-  su diagrama en `docs/flujo.md` (paso 5, ver registro).
+- **`main`**: al día con `origin/main`. Último trabajo: el flujo LangGraph (a11b28a) y las
+  revisiones guardadas en `ejemplos/revisiones/` (D-19).
 - **Curso**: Clase 1 (*Busca*, 17/11/2026) completa respecto a las
   diapositivas. La siguiente es la Clase 2 (*Lee*), el **18/11/2026**; sus
   diapositivas están en `docs/Clase2.pdf` y su plan, abajo. Se está
   construyendo como ensayo, encargo a encargo: hechos los pasos 1 a 5 (`.env.example`, `resumir`, `llm.py`, Práctica 1,
   flujo LangGraph), probados con un modelo real (Anthropic).
-- **Calidad**: 246 tests pasan, sin red, en ~1,5 s; `ruff check` y
+- **Calidad**: 250 tests pasan, sin red, en ~1,5 s; `ruff check` y
   `ruff format --check` en verde.
 - **PRs abiertas**: ninguna.
 - **Funciona**:
@@ -33,7 +33,8 @@ _Actualizado: 2026-11-18._
     `init_chat_model`, límite de llamadas por minuto y errores claros;
   - `litmar revisar "pregunta"`: flujo LangGraph de seis pasos
     (`src/litmar/flujo.py`) con verificación de citas por código; guarda
-    `revision.md` y `revision.bib` (solo lo citado);
+    `revision.md` y `revision.bib` (solo lo citado) en
+    `ejemplos/revisiones/<fecha_hora_pregunta>/` (ignorado en git);
   - configuración por `.env` (plantilla en `.env.example`; todo opcional salvo
     Zotero).
 
@@ -139,6 +140,16 @@ contra esto.
   proponer su hook `_antes_de_peticion` en `Fuente`.
 
 ## Registro de sesiones
+
+### 2026-11-18 — Sesión 2: salidas de `litmar revisar` en `ejemplos/revisiones/`
+
+- Petición del usuario: guardar las salidas en `ejemplos/`, cada una en su
+  subdirectorio. Decidió (herramienta de preguntas) nombre con fecha, hora y
+  pregunta, y no versionarlas (D-19).
+- `cli.py`: `nombre_carpeta()` y `carpeta_revision()`; `--informe` y `--bibtex`
+  ya no tienen valor por defecto (si faltan, van a la carpeta de la ejecución).
+  `.gitignore`: `ejemplos/revisiones/`. 4 tests nuevos (nombre, no pisar, CLI
+  sin rutas, una revisión que falla no deja carpeta). 250 tests.
 
 ### 2026-11-18 — Sesión 2: flujo LangGraph y `litmar revisar` (Clase 2, encargo 5)
 

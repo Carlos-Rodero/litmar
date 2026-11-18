@@ -1,5 +1,6 @@
 """Tests del flujo de revisión con un modelo y unas fuentes falsos: sin clave, sin red."""
 
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -352,3 +353,45 @@ def test_el_diagrama_de_docs_esta_al_dia():
     assert generado in docs.read_text(encoding="utf-8"), (
         "docs/flujo.md no coincide con el grafo: regenera el diagrama (ver el propio fichero)"
     )
+
+
+# --- Dónde se guardan las revisiones
+
+
+def test_nombre_carpeta():
+    ahora = datetime(2026, 11, 18, 15, 30)
+
+    assert (
+        cli.nombre_carpeta("¿Cómo afecta el calentamiento a las praderas de Posidonia?", ahora)
+        == "2026-11-18_1530_como-afecta-el-calentamiento-a-las-praderas-de"
+    )
+    assert cli.nombre_carpeta("¿¿??", ahora) == "2026-11-18_1530_revision"
+    assert cli.nombre_carpeta("a" * 80, ahora) == "2026-11-18_1530_" + "a" * 50
+
+
+def test_carpeta_revision_no_pisa_una_anterior(tmp_path):
+    ahora = datetime(2026, 11, 18, 15, 30)
+    primera = cli.carpeta_revision("Posidonia", tmp_path, ahora)
+    primera.mkdir()
+
+    assert primera.name == "2026-11-18_1530_posidonia"
+    assert cli.carpeta_revision("Posidonia", tmp_path, ahora).name == primera.name + "-2"
+
+
+def test_cli_revisar_guarda_en_su_carpeta_de_ejemplos(sin_red, tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+
+    assert cli.main(["revisar", PREGUNTA, "-n", "3"]) == 0
+
+    (carpeta,) = (tmp_path / "ejemplos" / "revisiones").iterdir()
+    assert carpeta.name.endswith("_como-afecta-el-calentamiento-a-posidonia-oceanica")
+    assert sorted(f.name for f in carpeta.iterdir()) == ["revision.bib", "revision.md"]
+    assert str(carpeta.relative_to(tmp_path) / "revision.md") in capsys.readouterr().out
+
+
+def test_cli_revisar_que_falla_no_deja_carpeta(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("LITMAR_MODELO", raising=False)
+
+    assert cli.main(["revisar", PREGUNTA]) == 1
+    assert not (tmp_path / "ejemplos").exists()

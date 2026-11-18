@@ -144,14 +144,15 @@ del Mar, tres clases, imparte Roberto Bada). Las diapositivas están en `docs/`
 
 ```bash
 uv sync                          # instala todo, incluido el grupo dev (pytest, ruff, streamlit)
-uv run pytest                    # tests (sin red; ~246, ~1,5 s)
+uv run pytest                    # tests (sin red; ~250, ~1,5 s)
 uv run ruff check --fix          # lint (reglas E, W, F, I, UP, B; línea de 100)
 uv run ruff format               # formato
 uv run litmar --help             # CLI
 uv run litmar buscar "posidonia carbon" --fuente openalex,europepmc --desde 2020 --bibtex refs.bib
 uv run litmar buscar "consulta" -n 10 --guardar biblioteca.json
 uv run litmar exportar biblioteca.json --bibtex refs.bib
-uv run litmar revisar "pregunta"  # revisión con LLM: revision.md y revision.bib (necesita LITMAR_MODELO)
+uv run litmar revisar "pregunta"  # revisión con LLM (necesita LITMAR_MODELO): informe y BibTeX
+                                 # en ejemplos/revisiones/<fecha_hora_pregunta>/ (ignorado en git)
 uv run litmar ui                 # interfaz web (Streamlit)
 uv run litmar ui --server.headless true --server.port 8599   # sin navegador ni preguntas
 ```
@@ -192,6 +193,7 @@ docs/                diapositivas del curso (PDF) y flujo.md (diagrama del grafo
                      un test comprueba que el Mermaid generado está al día)
 ejemplos/
   resumir.py         Práctica 1 de la Clase 2: busca 3 artículos y los resume
+  revisiones/        salidas de `litmar revisar`, una carpeta por ejecución (en .gitignore)
 tests/
   conftest.py        fixture hacer_articulo (fábrica de Articulo válidos)
   test_*.py          uno por módulo/fuente; test_ui.py usa streamlit.testing

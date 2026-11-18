@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import re
 import shutil
 import subprocess
 import sys
+import unicodedata
 from collections.abc import Iterable
+from datetime import datetime
 from pathlib import Path
 
 from litmar.articulo import Articulo
@@ -17,6 +20,9 @@ from litmar.configuracion import FUENTES, id_fuente, nombre_fuente
 from litmar.flujo import MAX_SELECCIONADOS
 
 ANCHO_AUTORES = 20
+# Cada `litmar revisar` guarda su informe y su BibTeX en un subdirectorio propio.
+CARPETA_REVISIONES = Path("ejemplos") / "revisiones"
+LARGO_NOMBRE = 50
 
 
 def _positivo(valor: str) -> int:
@@ -119,16 +125,16 @@ def _parser() -> argparse.ArgumentParser:
     revisar.add_argument(
         "--informe",
         type=Path,
-        default=Path("revision.md"),
         metavar="ARCHIVO.md",
-        help="Dónde guardar el informe (revision.md)",
+        help=f"Dónde guardar el informe (por defecto, {CARPETA_REVISIONES}/<fecha_pregunta>/"
+        "revision.md)",
     )
     revisar.add_argument(
         "--bibtex",
         type=Path,
-        default=Path("revision.bib"),
         metavar="ARCHIVO.bib",
-        help="Dónde guardar el BibTeX de lo citado (revision.bib)",
+        help=f"Dónde guardar el BibTeX de lo citado (por defecto, {CARPETA_REVISIONES}/"
+        "<fecha_pregunta>/revision.bib)",
     )
 
     comandos.add_parser(
@@ -200,13 +206,44 @@ def _exportar(args: argparse.Namespace) -> int:
     return 0
 
 
+def nombre_carpeta(pregunta: str, ahora: datetime) -> str:
+    """«2026-11-18_1530_como-afecta-el-calentamiento-a-las-praderas»: fecha, hora y pregunta.
+
+    Sin acentos ni signos, en minúsculas y recortado a `LARGO_NOMBRE` caracteres
+    sin partir palabras, para que sirva como nombre de carpeta en cualquier sistema.
+    """
+    ascii_ = unicodedata.normalize("NFKD", pregunta).encode("ascii", "ignore").decode()
+    palabras = re.findall(r"[a-z0-9]+", ascii_.lower())
+    resumen = ""
+    for palabra in palabras:
+        siguiente = f"{resumen}-{palabra}" if resumen else palabra
+        if len(siguiente) > LARGO_NOMBRE:
+            break
+        resumen = siguiente
+    resumen = resumen or (palabras[0][:LARGO_NOMBRE] if palabras else "revision")
+    return f"{ahora:%Y-%m-%d_%H%M}_{resumen}"
+
+
+def carpeta_revision(
+    pregunta: str, base: Path = CARPETA_REVISIONES, ahora: datetime | None = None
+) -> Path:
+    """Subdirectorio nuevo para una revisión; si ya existe, añade -2, -3…"""
+    nombre = nombre_carpeta(pregunta, ahora or datetime.now())
+    carpeta = base / nombre
+    numero = 2
+    while carpeta.exists():
+        carpeta = base / f"{nombre}-{numero}"
+        numero += 1
+    return carpeta
+
+
 def _revisar(args: argparse.Namespace) -> int:
     # LangChain y los paquetes de los proveedores tardan en importarse: solo se cargan
     # para este comando, no para `buscar` o `exportar`.
     from litmar import flujo
     from litmar.llm import ErrorDeConfiguracion, crear_modelo
 
-    if args.informe.resolve() == args.bibtex.resolve():
+    if args.informe and args.bibtex and args.informe.resolve() == args.bibtex.resolve():
         raise ValueError("el informe y el BibTeX deben ser archivos distintos")
     try:
         modelo = crear_modelo()
@@ -230,11 +267,18 @@ def _revisar(args: argparse.Namespace) -> int:
         print(f"Error del modelo: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 1
 
-    args.informe.write_text(flujo.informe_markdown(estado), encoding="utf-8")
+    # La carpeta se crea al final: una revisión que falla no deja carpetas vacías.
+    informe, bibtex = args.informe, args.bibtex
+    if informe is None or bibtex is None:
+        carpeta = carpeta_revision(args.pregunta)
+        carpeta.mkdir(parents=True)
+        informe = informe or carpeta / "revision.md"
+        bibtex = bibtex or carpeta / "revision.bib"
+    informe.write_text(flujo.informe_markdown(estado), encoding="utf-8")
     referencias = flujo.citados(estado)
-    referencias.exportar_bibtex(args.bibtex)
-    print(f"Informe guardado en {args.informe}.")
-    print(f"{len(referencias)} artículos citados exportados a {args.bibtex}.")
+    referencias.exportar_bibtex(bibtex)
+    print(f"Informe guardado en {informe}.")
+    print(f"{len(referencias)} artículos citados exportados a {bibtex}.")
     return 0
 
 

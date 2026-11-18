@@ -144,8 +144,8 @@ uv run litmar revisar "¿Cómo afecta el calentamiento a las praderas de Posidon
 > resumir_articulos  6 resúmenes
 > sintetizar         informe (5 citas)
 > verificar_citas    ok
-Informe guardado en revision.md.
-5 artículos citados exportados a revision.bib.
+Informe guardado en ejemplos/revisiones/2026-11-18_1530_como-afecta-el-calentamiento-a-las-praderas-de/revision.md.
+5 artículos citados exportados a ejemplos/revisiones/2026-11-18_1530_como-afecta-el-calentamiento-a-las-praderas-de/revision.bib.
 ```
 
 Es un flujo fijo de LangGraph (`src/litmar/flujo.py`) con seis pasos. Tres usan
@@ -169,11 +169,16 @@ flowchart LR
   mucho 2 veces); si después sigue habiendo DOI inventados, se sustituyen por
   «[cita no verificada]» y se avisa. Ningún DOI sin comprobar llega al informe ni
   al BibTeX.
-- **El informe** (`--informe`, por defecto `revision.md`) incluye la pregunta,
+- **Dónde se guarda:** cada revisión, en su propio subdirectorio de
+  `ejemplos/revisiones/`, con la fecha, la hora y la pregunta en el nombre. Una
+  revisión nunca pisa a otra (si coincide el nombre, se añade `-2`) y una que
+  falla no deja carpeta. `ejemplos/revisiones/` está en el `.gitignore`.
+  `--informe` y `--bibtex` permiten elegir otra ruta.
+- **El informe** (`revision.md`) incluye la pregunta,
   las búsquedas, la síntesis, las referencias (las escribe el código a partir de
   lo citado, no el modelo) y los avisos (fuentes que fallaron, resúmenes que no
   se pudieron hacer).
-- **`--bibtex`** (por defecto `revision.bib`): solo los artículos citados.
+- **El BibTeX** (`revision.bib`): solo los artículos citados.
 - **`--fuente`** (por defecto `openalex,europepmc`), **`-n`** (artículos que se
   resumen: 6 por defecto, 10 como máximo) y **`--desde AÑO`**.
 - **Coste:** una llamada para planificar, una por artículo y de 1 a 3 para la

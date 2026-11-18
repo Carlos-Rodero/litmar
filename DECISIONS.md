@@ -120,3 +120,15 @@ que el modelo vio (los resumidos), no todos los que pasaron `filtrar`. Las
 referencias del informe las genera el código a partir de los DOI verificados.
 Lo eligió el usuario. Los campos del estado (`EstadoRevision`) van en inglés por
 D-2, aunque la diapositiva diga «pregunta, artículos…».
+
+### D-19 · Cada revisión, en su carpeta de `ejemplos/revisiones/`, fuera de git — 2026-11-18
+Petición del usuario: las salidas de `litmar revisar` no se mezclan en el
+directorio de trabajo. Cada ejecución crea
+`ejemplos/revisiones/AAAA-MM-DD_HHMM_<pregunta-sin-acentos>/` con `revision.md`
+y `revision.bib` (nombre recortado a 50 caracteres sin partir palabras; si ya
+existe, `-2`, `-3`…). La carpeta se crea al final, para que una revisión que
+falla no deje carpetas vacías. `ejemplos/revisiones/` va en `.gitignore`: cada
+alumno tiene las suyas y no aparecen en sus PRs (una de muestra se puede añadir
+con `git add -f`). `--informe` y `--bibtex` siguen permitiendo otra ruta. La
+ruta es relativa al directorio desde el que se ejecuta `litmar`. Descartado:
+nombrar solo por pregunta (se pisan) o solo por fecha (no dice de qué trata).
