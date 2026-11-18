@@ -8,14 +8,15 @@ el registro solo crece (entradas nuevas arriba).
 
 _Actualizado: 2026-11-18._
 
-- **`main`**: al día con `origin/main`. Último trabajo: las herramientas
-  `buscar_articulos` y `listar_fuentes` (paso 6, ver registro).
+- **`main`**: al día con `origin/main`. Último trabajo: el agente con Deep Agents
+  (paso 8, ver registro).
 - **Curso**: Clase 1 (*Busca*, 17/11/2026) completa respecto a las
   diapositivas. La siguiente es la Clase 2 (*Lee*), el **18/11/2026**; sus
   diapositivas están en `docs/Clase2.pdf` y su plan, abajo. Se está
-  construyendo como ensayo, encargo a encargo: hechos los pasos 1 a 6 (`.env.example`, `resumir`, `llm.py`, Práctica 1,
-  flujo LangGraph, herramientas), probados con un modelo real (Anthropic).
-- **Calidad**: 273 tests pasan, sin red, en ~1,5 s; `ruff check` y
+  construyendo como ensayo, encargo a encargo: hechos los pasos 1 a 6 y el 8 (`.env.example`, `resumir`, `llm.py`,
+  Práctica 1, flujo LangGraph, herramientas, agente); falta la votación (7)
+  y la pestaña de la UI (9), probados con un modelo real (Anthropic).
+- **Calidad**: 291 tests pasan, sin red, en ~1,5 s; `ruff check` y
   `ruff format --check` en verde.
 - **PRs abiertas**: ninguna.
 - **Funciona**:
@@ -37,6 +38,9 @@ _Actualizado: 2026-11-18._
     `ejemplos/revisiones/<fecha_hora_pregunta>/` (ignorado en git);
   - herramientas de LangChain `buscar_articulos` y `listar_fuentes`
     (`src/litmar/herramientas.py`), listas para el agente;
+  - `litmar revisar … --modo agente [--aprobar]`: agente de Deep Agents con
+    subagente buscador, lista de tareas, límites y citas comprobadas
+    (`src/litmar/agente.py`); mismo informe y BibTeX que el flujo;
   - configuración por `.env` (plantilla en `.env.example`; todo opcional salvo
     Zotero).
 
@@ -50,7 +54,7 @@ Por orden de prioridad sugerido; nada está empezado.
    trabajo sin registrar (los casos se probaron a mano con un repo de prueba).
 1. [ ] **Clase 2**: seguir el «Plan de la Clase 2» (abajo). El usuario lanza
    los prompts de las diapositivas uno a uno (ensayo). Siguiente: la
-   votación de clase (paso 7) y el agente con Deep Agents (paso 8). Pendiente: probar con Gemini (solo se ha probado con
+   pestaña «Revisión» de la UI (paso 9); la votación (paso 7) se hace en clase. Pendiente: probar con Gemini (solo se ha probado con
    Anthropic). Ojo: con el límite por defecto la primera llamada espera ~6 s (el
    limitador empieza vacío).
 2. [ ] **Permisos del JSON**: `Biblioteca.guardar` deja `0600`; aplicar la umask
@@ -105,7 +109,7 @@ la documentación actual de LangChain, LangGraph y deepagents antes de programar
    (`github.com/Sapere-IA/zotero-mcp`, solo herramientas de lectura, arranque en
    el `.env`; el MCP solo para PDFs y notas, sin duplicar la búsqueda), Semantic
    Scholar como herramienta de citas, o una fuente de CSV/BD local del grupo.
-8. [ ] **Agente con Deep Agents**: `litmar revisar … --modo agente` con
+8. [x] **Agente con Deep Agents** (18/11, D-21): `litmar revisar … --modo agente` con
    `create_deep_agent` y `herramientas.py`; instrucciones: planificar con lista
    de tareas, buscar en varias fuentes, citar solo DOIs que den las herramientas
    y decir lo que no encontró. Mismo formato de informe y BibTeX que el flujo.
@@ -120,6 +124,14 @@ la documentación actual de LangChain, LangGraph y deepagents antes de programar
 
 ## Cabos sueltos
 
+- **Subagente `general-purpose` del agente**: Deep Agents lo ofrece siempre en
+  `task`, con las herramientas del principal (no puede buscar). Si en clase
+  molesta, se quita con `register_harness_profile(<clave del modelo>,
+  HarnessProfile(general_purpose_subagent=GeneralPurposeSubagentProfile(enabled=False)))`.
+- **El buscador ve resúmenes recortados a 400 caracteres** (`LARGO_RESUMEN` en
+  `herramientas.py`): en la prueba real el informe del agente dice varias veces
+  que «los resúmenes recibidos no permiten…». Buen ejemplo para el taller
+  (flujo contra agente: el flujo resume el resumen completo).
 - **Europe PMC deja HTML en títulos y resúmenes** (`<i>…</i>`, `&lt;i&gt;`),
   visto el 18/11 al probar `buscar_articulos`. Afecta a la tabla de la CLI, al
   BibTeX y a lo que ve el modelo. Limpiarlo en `fuentes/europepmc.py` (con
@@ -146,6 +158,26 @@ contra esto.
   proponer su hook `_antes_de_peticion` en `Fuente`.
 
 ## Registro de sesiones
+
+### 2026-11-18 — Sesión 2: agente con Deep Agents (Clase 2, encargo 8)
+
+- Prompt literal de la diapositiva 36. Antes, documentación actual: subagente
+  `web-fetch` sobre docs.langchain.com (HITL, subagentes, backends, perfiles,
+  streaming) y comprobación en el código instalado (deepagents 0.7.39) de lo
+  que no aclaraban. Hallazgos en `AGENTS.md` §9.
+- `src/litmar/agente.py` (D-21): `crear_agente`, `Registro`, `Narrador`,
+  `interrupcion`, `estado_final`. `herramientas.py` se partió en `buscar()` y
+  `describir_fuentes()` (con `permitidas` y `desde`) para reutilizarlas.
+- CLI: `--modo agente`, `--aprobar` (pregunta S/n/e en la terminal), `-n` como
+  máximo de artículos del agente; `_revisar` dividido en `_con_flujo` y
+  `_con_agente`.
+- `tests/test_agente.py` (18 tests): modelo de guion, herramientas de cada
+  agente, recorrido completo, DOI inventado, límite de pasos y de búsquedas,
+  fuentes permitidas, aprobar/rechazar/editar, CLI. 291 tests.
+- Prueba real (Anthropic, pregunta de la demo): plan de 4 tareas, 3 encargos al
+  buscador en paralelo, 9 búsquedas, 6 citas verificadas, «Lo que no se
+  encontró» bien hecho; 1:52 min. `--aprobar` no se probó con el modelo real
+  (necesita terminal interactiva); sí con tests.
 
 ### 2026-11-18 — Sesión 2: herramientas (Clase 2, encargo 6)
 

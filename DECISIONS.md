@@ -145,3 +145,28 @@ error de validación. Cualquier excepción de la fuente se convierte en texto co
 `busqueda.mensaje_de_error`, que nunca incluye la petición (la URL puede llevar
 `CROSSREF_MAILTO` o claves). Límite de 10 y resumen recortado a 400 caracteres
 en el código.
+
+### D-21 · Agente revisor: herramientas mínimas, registro de búsquedas y límites — 2026-11-18
+Diapositivas 36-39. `--modo agente` usa `create_deep_agent` con:
+- **Agente principal** con `write_todos` (`TodoListMiddleware`), `task`,
+  `listar_fuentes` y solo `ls`/`read_file`/`write_file` sobre un `StateBackend`
+  (ficheros virtuales). No busca él: lo delega en el subagente `buscador`
+  (`buscar_articulos`, `listar_fuentes`, `read_file`), para que su contexto no
+  se llene de resultados (diapositiva 37).
+- **Citas comprobadas con código**: las herramientas del agente envuelven las de
+  `herramientas.py` (mismo nombre, descripción y argumentos, vía
+  `herramientas.buscar`) y guardan en un `Registro` cada artículo devuelto. Al
+  final, los DOI citados que no estén en el registro se marcan (como D-18). No
+  hay bucle de reescritura: el agente no se vuelve a llamar.
+- **Mismo formato que el flujo**: `estado_final` devuelve un estado con las
+  claves del flujo y se reutilizan `informe_markdown` y `citados`.
+- **Límites**: `ModelCallLimitMiddleware` (25 pasos el principal con
+  `thread_limit`, 8 el buscador por encargo) y 12 búsquedas en total dentro de
+  la herramienta. Al llegar al límite, el informe añade «Hasta dónde llegó» con
+  la lista de tareas (diapositiva 42).
+- **`--aprobar`**: `interrupt_on` para `buscar_articulos` (heredado por el
+  buscador), decisiones aprobar/editar/rechazar desde la terminal; sin terminal
+  (EOF) se rechaza. Requiere `MemorySaver`.
+- Se acepta el subagente `general-purpose` que añade Deep Agents (no puede
+  buscar) antes que un perfil global por modelo. `--fuente` limita las fuentes
+  en el código; `-n` es el máximo de artículos que elige el agente.

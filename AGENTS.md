@@ -144,13 +144,14 @@ del Mar, tres clases, imparte Roberto Bada). Las diapositivas están en `docs/`
 
 ```bash
 uv sync                          # instala todo, incluido el grupo dev (pytest, ruff, streamlit)
-uv run pytest                    # tests (sin red; ~273, ~1,5 s)
+uv run pytest                    # tests (sin red; ~291, ~2 s)
 uv run ruff check --fix          # lint (reglas E, W, F, I, UP, B; línea de 100)
 uv run ruff format               # formato
 uv run litmar --help             # CLI
 uv run litmar buscar "posidonia carbon" --fuente openalex,europepmc --desde 2020 --bibtex refs.bib
 uv run litmar buscar "consulta" -n 10 --guardar biblioteca.json
 uv run litmar exportar biblioteca.json --bibtex refs.bib
+uv run litmar revisar "pregunta" --modo agente --aprobar   # agente; pide permiso antes de buscar
 uv run litmar revisar "pregunta"  # revisión con LLM (necesita LITMAR_MODELO): informe y BibTeX
                                  # en ejemplos/revisiones/<fecha_hora_pregunta>/ (ignorado en git)
 uv run litmar ui                 # interfaz web (Streamlit)
@@ -175,9 +176,14 @@ src/litmar/
                      duplicar y recoge errores por fuente. La usan CLI y UI.
                      mensaje_de_error(): error de una fuente sin la petición
   cli.py             argparse: buscar (--fuente, --desde, --guardar, --bibtex,
-                     salida en tabla), exportar, revisar, ui
+                     salida en tabla), exportar, revisar (--modo flujo|agente,
+                     --aprobar), ui
   configuracion.py   FUENTES, fuentes_disponibles(), crear_fuente(nombre),
                      id_fuente()/nombre_fuente() («Europe PMC» ↔ «europepmc»)
+  agente.py          agente revisor (Deep Agents): crear_agente(), Registro de lo
+                     que devuelven las búsquedas, Narrador (líneas del stream),
+                     interrupcion(), estado_final() con citas comprobadas;
+                     MAX_PASOS/MAX_PASOS_BUSCADOR/MAX_BUSQUEDAS
   flujo.py           grafo LangGraph de revisión: EstadoRevision, crear_flujo(),
                      describir_paso(), informe_markdown(), citados(); límites
                      MAX_CONSULTAS/MAX_SELECCIONADOS/MAX_REESCRITURAS
@@ -309,6 +315,24 @@ en `.env.example`.
 - **Docstrings de `@tool`**: con `parse_docstring=True` (formato Google) la
   primera línea, el resto y cada `Args` se convierten en la descripción que lee
   el modelo; sin él, la descripción conserva la sangría del docstring.
+- **Deep Agents (0.7)**: `write_todos` ya no viene por defecto (hay que pasar
+  `TodoListMiddleware`); las herramientas de ficheros se recortan pasando
+  `FilesystemMiddleware(backend=…, tools=[…])` en `middleware` (en el principal y
+  en el `middleware` del subagente; `read_file` es obligatoria); `task` ofrece
+  siempre un subagente `general-purpose` con las herramientas del principal
+  (quitarlo exige `register_harness_profile` por modelo, global). El informe
+  queda en `state["files"]["/informe.md"]["content"]`.
+- **Interrupciones de un subagente** (`interrupt_on` heredado): llegan dos veces
+  al stream con `subgraphs=True` (en su espacio y en el principal); se atiende
+  la del principal y se reanuda con `Command(resume={"decisions": [...]})` en el
+  mismo `thread_id`. Hace falta checkpointer. No se repiten llamadas al modelo.
+- **`ModelCallLimitMiddleware(exit_behavior="end")`** añade su mensaje («Model
+  call limits exceeded…») desde el nodo `ModelCallLimitMiddleware.before_model`,
+  no desde `model`. Con aprobaciones cada reanudación es un *run* nuevo: para el
+  principal se usa `thread_limit`.
+- **Modelos falsos para agentes**: un `BaseChatModel` con `_generate` que saca
+  mensajes de un guion y `bind_tools` que devuelve un envoltorio (ver
+  `tests/test_agente.py`). El principal y el subagente comparten el guion.
 - **`Retry-After: 0`** es válido: comprobar con `is None`, no con `or`.
 - **`Biblioteca.guardar`** deja el JSON con permisos `0600` (lo crea
   `NamedTemporaryFile`). Conocido, pendiente.

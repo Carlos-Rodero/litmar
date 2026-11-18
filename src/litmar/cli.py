@@ -102,7 +102,16 @@ def _parser() -> argparse.ArgumentParser:
     )
     revisar.add_argument("pregunta", type=_consulta, help="La pregunta de investigación")
     revisar.add_argument(
-        "--modo", choices=["flujo"], default="flujo", help="flujo: pasos fijos con LangGraph"
+        "--modo",
+        choices=["flujo", "agente"],
+        default="flujo",
+        help="flujo: pasos fijos con LangGraph (por defecto); agente: decide el modelo, "
+        "con Deep Agents",
+    )
+    revisar.add_argument(
+        "--aprobar",
+        action="store_true",
+        help="Solo con --modo agente: pedir permiso antes de cada búsqueda",
     )
     revisar.add_argument(
         "--fuente",
@@ -117,7 +126,8 @@ def _parser() -> argparse.ArgumentParser:
         type=_hasta_maximo,
         default=6,
         metavar="N",
-        help=f"Artículos que se resumen (6; máximo {MAX_SELECCIONADOS})",
+        help=f"Artículos que se resumen en el flujo o que elige el agente para el informe "
+        f"(6; máximo {MAX_SELECCIONADOS})",
     )
     revisar.add_argument(
         "--desde", type=int, metavar="AÑO", help="Solo artículos publicados ese año o después"
@@ -243,6 +253,8 @@ def _revisar(args: argparse.Namespace) -> int:
     from litmar import flujo
     from litmar.llm import ErrorDeConfiguracion, crear_modelo
 
+    if args.aprobar and args.modo != "agente":
+        raise ValueError("--aprobar solo se usa con --modo agente")
     if args.informe and args.bibtex and args.informe.resolve() == args.bibtex.resolve():
         raise ValueError("el informe y el BibTeX deben ser archivos distintos")
     try:
@@ -251,21 +263,13 @@ def _revisar(args: argparse.Namespace) -> int:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
 
-    revision = flujo.crear_flujo(modelo, fuentes=args.fuente, n=args.n, desde=args.desde)
-    estado = flujo.estado_inicial(args.pregunta)
     try:
-        # "updates": lo que cambia cada nodo, para mostrarlo; "values": el estado completo.
-        for modo, datos in revision.stream(estado, stream_mode=["updates", "values"]):
-            if modo == "values":
-                estado = datos
-                continue
-            for nodo, cambios in datos.items():
-                print(f"> {nodo:<18} {flujo.describir_paso(nodo, cambios)}", flush=True)
-                for aviso in cambios.get("warnings", []):
-                    print(f"  Aviso: {aviso}", file=sys.stderr)
+        estado = _con_agente(args, modelo) if args.modo == "agente" else _con_flujo(args, modelo)
     except Exception as exc:  # p. ej. un 429 del proveedor o una respuesta que no se entiende
         print(f"Error del modelo: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 1
+    for aviso in estado.get("warnings", []) if args.modo == "agente" else []:
+        print(f"  Aviso: {aviso}", file=sys.stderr)
 
     # La carpeta se crea al final: una revisión que falla no deja carpetas vacías.
     informe, bibtex = args.informe, args.bibtex
@@ -280,6 +284,72 @@ def _revisar(args: argparse.Namespace) -> int:
     print(f"Informe guardado en {informe}.")
     print(f"{len(referencias)} artículos citados exportados a {bibtex}.")
     return 0
+
+
+def _con_flujo(args: argparse.Namespace, modelo):
+    from litmar import flujo
+
+    revision = flujo.crear_flujo(modelo, fuentes=args.fuente, n=args.n, desde=args.desde)
+    estado = flujo.estado_inicial(args.pregunta)
+    # "updates": lo que cambia cada nodo, para mostrarlo; "values": el estado completo.
+    for modo, datos in revision.stream(estado, stream_mode=["updates", "values"]):
+        if modo == "values":
+            estado = datos
+            continue
+        for nodo, cambios in datos.items():
+            print(f"> {nodo:<18} {flujo.describir_paso(nodo, cambios)}", flush=True)
+            for aviso in cambios.get("warnings", []):
+                print(f"  Aviso: {aviso}", file=sys.stderr)
+    return estado
+
+
+def _con_agente(args: argparse.Namespace, modelo):
+    from langgraph.types import Command
+
+    from litmar import agente
+
+    registro = agente.Registro()
+    revisor = agente.crear_agente(
+        modelo, registro, fuentes=args.fuente, n=args.n, desde=args.desde, aprobar=args.aprobar
+    )
+    config = agente.configuracion()
+    narrador = agente.Narrador()
+    entrada = agente.entrada(args.pregunta)
+    while True:  # una vuelta por cada pausa para pedir aprobación
+        pendiente = None
+        for espacio, actualizacion in revisor.stream(
+            entrada, config, stream_mode="updates", subgraphs=True
+        ):
+            for linea in narrador.lineas(espacio, actualizacion):
+                print(linea, flush=True)
+            pendiente = agente.interrupcion(espacio, actualizacion) or pendiente
+        if pendiente is None:
+            break
+        decisiones = [_decidir(accion) for accion in pendiente["action_requests"]]
+        entrada = Command(resume={"decisions": decisiones})
+    return agente.estado_final(revisor, config, args.pregunta, registro)
+
+
+def _decidir(accion: dict) -> dict:
+    """Pregunta en la terminal si se aprueba una búsqueda: sí, no o editar."""
+    argumentos = dict(accion["args"])
+    descripcion = (
+        f"«{argumentos.get('consulta', '')}» en {argumentos.get('fuente', 'OpenAlex')} "
+        f"(n={argumentos.get('n', 5)})"
+    )
+    try:
+        respuesta = input(f"? ¿Buscar {descripcion}? [S/n/e(ditar)] ").strip().lower()
+        if respuesta in ("n", "no"):
+            return {"type": "reject", "message": "La persona no ha aprobado esta búsqueda."}
+        if respuesta in ("e", "editar"):
+            for clave in ("consulta", "fuente"):
+                nuevo = input(f"  {clave} [{argumentos.get(clave, '')}]: ").strip()
+                if nuevo:
+                    argumentos[clave] = nuevo
+            return {"type": "edit", "edited_action": {"name": accion["name"], "args": argumentos}}
+    except EOFError:  # sin terminal interactiva: no se busca nada sin permiso
+        return {"type": "reject", "message": "No se pudo pedir aprobación."}
+    return {"type": "approve"}
 
 
 def _lanzar_ui(opciones: list[str]) -> int:

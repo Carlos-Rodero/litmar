@@ -184,6 +184,47 @@ flowchart LR
 - **Coste:** una llamada para planificar, una por artículo y de 1 a 3 para la
   síntesis. Con el límite de 10 llamadas por minuto, en torno a minuto y medio.
 
+### Modo agente
+
+`--modo agente` responde a la misma pregunta con un agente de
+[Deep Agents](https://docs.langchain.com/oss/python/deepagents/overview): en
+lugar de pasos fijos, el modelo decide qué buscar y cuándo parar. Guarda el
+informe y el BibTeX con el mismo formato que el flujo, para poder compararlos.
+
+```bash
+uv run litmar revisar "¿Cómo afecta el calentamiento a las praderas de Posidonia oceanica?" --modo agente
+```
+
+```
+[~] Buscar efectos de olas de calor marinas en Posidonia oceanica (OpenAlex)
+[ ] Buscar efectos fisiológicos del estrés térmico (Europe PMC)
+[ ] Escribir el informe en /informe.md
+→ task(buscador): Busca en OpenAlex artículos sobre el efecto de las olas de calor…
+    · buscar_articulos(«Posidonia oceanica marine heatwave mortality», OpenAlex, n=10)
+→ write_file(informe.md)
+[x] 3/3 tareas
+```
+
+- **Qué puede hacer**: el agente principal planifica con una lista de tareas,
+  encarga las búsquedas a un subagente `buscador` y escribe el informe en un
+  fichero virtual (vive en memoria, no en el disco). El buscador solo tiene
+  `buscar_articulos` y `listar_fuentes`, limitadas a las fuentes de `--fuente`.
+  Nada escribe en el disco ni ejecuta código.
+- **Límites en el código**: 25 llamadas al modelo para el agente principal, 8
+  por encargo al buscador y 12 búsquedas en total. Si el agente llega a su
+  límite, el informe dice hasta dónde llegó (su lista de tareas).
+- **Citas comprobadas**: cada DOI citado se busca entre los artículos que
+  devolvieron las búsquedas; los demás se marcan como «[cita no verificada]».
+  El informe termina con «Lo que no se encontró».
+- **`--aprobar`**: antes de cada búsqueda, el agente se detiene y pregunta:
+  ```
+  ? ¿Buscar «posidonia warming» en Europe PMC (n=5)? [S/n/e(ditar)]
+  ```
+  `n` la rechaza (el agente lo sabe y sigue sin ella) y `e` permite cambiar la
+  consulta o la fuente.
+- **Coste y tiempo**: más llamadas que el flujo (en la prueba, 3 encargos y 9
+  búsquedas, casi 2 minutos con el límite de 10 llamadas por minuto).
+
 ### Herramientas para un modelo
 
 `litmar.herramientas` ofrece las fuentes como herramientas de LangChain, para

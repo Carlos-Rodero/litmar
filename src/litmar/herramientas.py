@@ -68,6 +68,60 @@ def formatear(articulos: Iterable[Articulo]) -> str:
     return "\n\n".join(bloques)
 
 
+def buscar(
+    consulta: str,
+    fuente: str,
+    n: int,
+    *,
+    permitidas: Iterable[str] | None = None,
+    desde: int | None = None,
+) -> tuple[str, list[Articulo]]:
+    """Lo que hace `buscar_articulos`, devolviendo además los artículos encontrados.
+
+    El texto es lo que lee el modelo; la lista permite al agente registrar qué
+    artículos ha visto (para comprobar después los DOI que cite). `permitidas`
+    limita las fuentes (por defecto, las disponibles) y `desde`, el año.
+    """
+    consulta = consulta.strip()
+    if not consulta:
+        return "Error: la consulta está vacía. Indica unas palabras clave.", []
+    permitidas = list(fuentes_disponibles() if permitidas is None else permitidas)
+    try:
+        nombre = nombre_fuente(fuente)
+    except ValueError:
+        nombre = None
+    if nombre not in permitidas:
+        return (
+            f"Error: la fuente {fuente!r} no está disponible. Usa una de: {', '.join(permitidas)}.",
+            [],
+        )
+    n = max(1, min(n, MAX_RESULTADOS))  # el límite lo pone el código
+
+    try:
+        with crear_fuente(nombre) as fuente_:
+            articulos = fuente_.buscar(consulta, n, desde=desde)
+    except Exception as exc:  # cualquier fallo vuelve al modelo como texto
+        return f"Error: {mensaje_de_error(nombre, exc)} Prueba con otra fuente.", []
+
+    if not articulos:
+        return (
+            f"Sin resultados en {nombre} para «{consulta}». Prueba con otras palabras clave "
+            "(en inglés) o con otra fuente.",
+            [],
+        )
+    resultados = "1 resultado" if len(articulos) == 1 else f"{len(articulos)} resultados"
+    cabecera = f"{resultados} de {nombre} para «{consulta}»:"
+    if nombre == "PANGAEA":
+        cabecera = f"{AVISO_PANGAEA}\n{cabecera}"
+    return f"{cabecera}\n\n{formatear(articulos)}", articulos
+
+
+def describir_fuentes(nombres: Iterable[str]) -> str:
+    """El texto de `listar_fuentes` para las fuentes `nombres`."""
+    lineas = [f"- {nombre}: {DESCRIPCIONES.get(nombre, 'sin descripción.')}" for nombre in nombres]
+    return "Fuentes disponibles para buscar_articulos:\n" + "\n".join(lineas)
+
+
 @tool(parse_docstring=True)
 def buscar_articulos(consulta: str, fuente: str = "OpenAlex", n: int = 5) -> str:
     """Busca artículos científicos en una fuente bibliográfica.
@@ -87,36 +141,8 @@ def buscar_articulos(consulta: str, fuente: str = "OpenAlex", n: int = 5) -> str
             (p. ej. "OpenAlex" o "Europe PMC").
         n: cuántos resultados devolver, de 1 a 10.
     """
-    consulta = consulta.strip()
-    if not consulta:
-        return "Error: la consulta está vacía. Indica unas palabras clave."
-    disponibles = fuentes_disponibles()
-    try:
-        nombre = nombre_fuente(fuente)
-    except ValueError:
-        nombre = None
-    if nombre not in disponibles:
-        return (
-            f"Error: la fuente {fuente!r} no está disponible. Usa una de: {', '.join(disponibles)}."
-        )
-    n = max(1, min(n, MAX_RESULTADOS))  # el límite lo pone el código
-
-    try:
-        with crear_fuente(nombre) as fuente_:
-            articulos = fuente_.buscar(consulta, n)
-    except Exception as exc:  # cualquier fallo vuelve al modelo como texto
-        return f"Error: {mensaje_de_error(nombre, exc)} Prueba con otra fuente."
-
-    if not articulos:
-        return (
-            f"Sin resultados en {nombre} para «{consulta}». Prueba con otras palabras clave "
-            "(en inglés) o con otra fuente."
-        )
-    resultados = "1 resultado" if len(articulos) == 1 else f"{len(articulos)} resultados"
-    cabecera = f"{resultados} de {nombre} para «{consulta}»:"
-    if nombre == "PANGAEA":
-        cabecera = f"{AVISO_PANGAEA}\n{cabecera}"
-    return f"{cabecera}\n\n{formatear(articulos)}"
+    texto, _ = buscar(consulta, fuente, n)
+    return texto
 
 
 @tool(parse_docstring=True)
@@ -125,11 +151,7 @@ def listar_fuentes() -> str:
 
     Úsala antes de buscar para elegir las fuentes adecuadas al tema.
     """
-    lineas = [
-        f"- {nombre}: {DESCRIPCIONES.get(nombre, 'sin descripción.')}"
-        for nombre in fuentes_disponibles()
-    ]
-    return "Fuentes disponibles para buscar_articulos:\n" + "\n".join(lineas)
+    return describir_fuentes(fuentes_disponibles())
 
 
 HERRAMIENTAS = [buscar_articulos, listar_fuentes]
