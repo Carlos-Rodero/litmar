@@ -103,3 +103,20 @@ se añade con `uv add langchain-<proveedor>` y su variable de clave en
 comprueba antes de crear el modelo para dar un error que diga qué línea añadir
 al `.env`. Como D-8, `llm.py` lee el entorno y no carga `.env`: lo hace el
 comando `litmar`; los scripts propios llaman a `load_dotenv()`.
+
+### D-17 · Flujo de revisión: «los N mejores» son los más citados — 2026-11-18
+`filtrar` se queda con los artículos con resumen y los ordena por citas. Es
+fácil de explicar y de comprobar, aunque favorece lo antiguo (en la prueba real
+entraron revisiones generales sobre olas de calor). Cambiar el criterio es el
+ejercicio natural de la Práctica 2. Descartado de momento: por año, o el orden de
+relevancia de cada API. Lo eligió el usuario.
+
+### D-18 · Citas inventadas tras agotar las reescrituras: se marcan — 2026-11-18
+Tras `MAX_REESCRITURAS` (2), `verificar_citas` sustituye cada DOI que no está
+entre los resumidos por «[cita no verificada]» y añade un aviso. Así ningún DOI
+sin comprobar llega al informe ni al BibTeX. Descartado: guardar el informe tal
+cual con un aviso, o fallar sin guardar nada. «Seleccionados» son los artículos
+que el modelo vio (los resumidos), no todos los que pasaron `filtrar`. Las
+referencias del informe las genera el código a partir de los DOI verificados.
+Lo eligió el usuario. Los campos del estado (`EstadoRevision`) van en inglés por
+D-2, aunque la diapositiva diga «pregunta, artículos…».

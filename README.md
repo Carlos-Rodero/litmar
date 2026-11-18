@@ -127,6 +127,58 @@ $env:OPENALEX_API_KEY = "tu-clave"
 uv run litmar buscar "bibliometrics" -n 5
 ```
 
+## Revisión de literatura con un modelo de lenguaje
+
+`litmar revisar` responde a una pregunta de investigación con un informe que
+solo cita artículos reales, y el BibTeX de lo citado. Necesita `LITMAR_MODELO` y
+la clave de su proveedor en el `.env` (ver [Configuración](#configuración)).
+
+```bash
+uv run litmar revisar "¿Cómo afecta el calentamiento a las praderas de Posidonia oceanica?"
+```
+
+```
+> planificar         3 consultas
+> buscar             50 artículos
+> filtrar            6 seleccionados
+> resumir_articulos  6 resúmenes
+> sintetizar         informe (5 citas)
+> verificar_citas    ok
+Informe guardado en revision.md.
+5 artículos citados exportados a revision.bib.
+```
+
+Es un flujo fijo de LangGraph (`src/litmar/flujo.py`) con seis pasos. Tres usan
+el modelo y tres son código normal:
+
+```mermaid
+flowchart LR
+    START([START]) --> planificar
+    planificar["LLM · planificar<br/>Convierte la pregunta en 2-3 búsquedas"] --> buscar
+    buscar["CÓDIGO · buscar<br/>Consulta las fuentes"] --> filtrar
+    filtrar["CÓDIGO · filtrar<br/>Con resumen, sin duplicados, los N más citados"] --> resumir_articulos
+    resumir_articulos["LLM · resumir_articulos<br/>Un resumen estructurado por artículo"] --> sintetizar
+    sintetizar["LLM · sintetizar<br/>Escribe la síntesis citando por DOI"] --> verificar_citas
+    verificar_citas["CÓDIGO · verificar_citas<br/>¿Cada DOI citado está entre los seleccionados?"]
+    verificar_citas -- "citas inventadas: reescribir (máx. 2)" --> sintetizar
+    verificar_citas -- "ok" --> END([END])
+```
+
+- **`verificar_citas`** comprueba con código que cada DOI citado está entre los
+  artículos resumidos. Si alguno no está, el modelo reescribe la síntesis (como
+  mucho 2 veces); si después sigue habiendo DOI inventados, se sustituyen por
+  «[cita no verificada]» y se avisa. Ningún DOI sin comprobar llega al informe ni
+  al BibTeX.
+- **El informe** (`--informe`, por defecto `revision.md`) incluye la pregunta,
+  las búsquedas, la síntesis, las referencias (las escribe el código a partir de
+  lo citado, no el modelo) y los avisos (fuentes que fallaron, resúmenes que no
+  se pudieron hacer).
+- **`--bibtex`** (por defecto `revision.bib`): solo los artículos citados.
+- **`--fuente`** (por defecto `openalex,europepmc`), **`-n`** (artículos que se
+  resumen: 6 por defecto, 10 como máximo) y **`--desde AÑO`**.
+- **Coste:** una llamada para planificar, una por artículo y de 1 a 3 para la
+  síntesis. Con el límite de 10 llamadas por minuto, en torno a minuto y medio.
+
 ## Uso desde Python
 
 ```python

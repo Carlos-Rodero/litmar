@@ -144,13 +144,14 @@ del Mar, tres clases, imparte Roberto Bada). Las diapositivas están en `docs/`
 
 ```bash
 uv sync                          # instala todo, incluido el grupo dev (pytest, ruff, streamlit)
-uv run pytest                    # tests (sin red; ~229, ~1 s)
+uv run pytest                    # tests (sin red; ~246, ~1,5 s)
 uv run ruff check --fix          # lint (reglas E, W, F, I, UP, B; línea de 100)
 uv run ruff format               # formato
 uv run litmar --help             # CLI
 uv run litmar buscar "posidonia carbon" --fuente openalex,europepmc --desde 2020 --bibtex refs.bib
 uv run litmar buscar "consulta" -n 10 --guardar biblioteca.json
 uv run litmar exportar biblioteca.json --bibtex refs.bib
+uv run litmar revisar "pregunta"  # revisión con LLM: revision.md y revision.bib (necesita LITMAR_MODELO)
 uv run litmar ui                 # interfaz web (Streamlit)
 uv run litmar ui --server.headless true --server.port 8599   # sin navegador ni preguntas
 ```
@@ -172,9 +173,12 @@ src/litmar/
   busqueda.py        buscar_en_fuentes(): busca en varias fuentes, junta sin
                      duplicar y recoge errores por fuente. La usan CLI y UI
   cli.py             argparse: buscar (--fuente, --desde, --guardar, --bibtex,
-                     salida en tabla), exportar, ui
+                     salida en tabla), exportar, revisar, ui
   configuracion.py   FUENTES, fuentes_disponibles(), crear_fuente(nombre),
                      id_fuente()/nombre_fuente() («Europe PMC» ↔ «europepmc»)
+  flujo.py           grafo LangGraph de revisión: EstadoRevision, crear_flujo(),
+                     describir_paso(), informe_markdown(), citados(); límites
+                     MAX_CONSULTAS/MAX_SELECCIONADOS/MAX_REESCRITURAS
   llm.py             crear_modelo(): LITMAR_MODELO → init_chat_model, con
                      InMemoryRateLimiter y ErrorDeConfiguracion si falta algo
   resumen.py         ResumenArticulo (Pydantic) y resumir(articulo, pregunta, modelo)
@@ -184,7 +188,8 @@ src/litmar/
     base.py          Fuente (ABC): buscar(consulta, n, *, desde=None) abstracto;
                      _admite (validez + año); _get/_get_json con reintentos
     openalex.py crossref.py europepmc.py arxiv.py pangaea.py zotero.py
-docs/                diapositivas del curso (PDF)
+docs/                diapositivas del curso (PDF) y flujo.md (diagrama del grafo;
+                     un test comprueba que el Mermaid generado está al día)
 ejemplos/
   resumir.py         Práctica 1 de la Clase 2: busca 3 artículos y los resume
 tests/

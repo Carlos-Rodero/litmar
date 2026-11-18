@@ -13,6 +13,7 @@ dependencies = [
     "langchain-anthropic>=1.7.10",
     "langchain-core>=1.8.2",
     "langchain-google-genai>=4.5.0",
+    "langgraph>=1.2.22",
     "pydantic>=2.14.3",
     "python-dotenv>=1.2.4",
 ]

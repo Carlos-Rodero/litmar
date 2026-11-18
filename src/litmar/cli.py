@@ -14,6 +14,7 @@ from litmar.articulo import Articulo
 from litmar.biblioteca import Biblioteca
 from litmar.busqueda import buscar_en_fuentes
 from litmar.configuracion import FUENTES, id_fuente, nombre_fuente
+from litmar.flujo import MAX_SELECCIONADOS
 
 ANCHO_AUTORES = 20
 
@@ -22,6 +23,13 @@ def _positivo(valor: str) -> int:
     numero = int(valor)
     if numero < 1:
         raise argparse.ArgumentTypeError("debe ser al menos 1")
+    return numero
+
+
+def _hasta_maximo(valor: str) -> int:
+    numero = _positivo(valor)
+    if numero > MAX_SELECCIONADOS:
+        raise argparse.ArgumentTypeError(f"como mucho {MAX_SELECCIONADOS}")
     return numero
 
 
@@ -80,6 +88,48 @@ def _parser() -> argparse.ArgumentParser:
     exportar = comandos.add_parser("exportar", help="Exportar una biblioteca JSON a BibTeX")
     exportar.add_argument("biblioteca", type=Path)
     exportar.add_argument("--bibtex", type=Path, required=True, metavar="ARCHIVO.bib")
+
+    revisar = comandos.add_parser(
+        "revisar",
+        help="Revisión de literatura con un modelo de lenguaje: informe y BibTeX de lo citado",
+        description="Necesita LITMAR_MODELO y la clave de su proveedor en el .env.",
+    )
+    revisar.add_argument("pregunta", type=_consulta, help="La pregunta de investigación")
+    revisar.add_argument(
+        "--modo", choices=["flujo"], default="flujo", help="flujo: pasos fijos con LangGraph"
+    )
+    revisar.add_argument(
+        "--fuente",
+        type=_fuentes,
+        default=["OpenAlex", "Europe PMC"],
+        metavar="F1,F2",
+        help="Fuentes separadas por comas (openalex,europepmc)",
+    )
+    revisar.add_argument(
+        "-n",
+        "--n",
+        type=_hasta_maximo,
+        default=6,
+        metavar="N",
+        help=f"Artículos que se resumen (6; máximo {MAX_SELECCIONADOS})",
+    )
+    revisar.add_argument(
+        "--desde", type=int, metavar="AÑO", help="Solo artículos publicados ese año o después"
+    )
+    revisar.add_argument(
+        "--informe",
+        type=Path,
+        default=Path("revision.md"),
+        metavar="ARCHIVO.md",
+        help="Dónde guardar el informe (revision.md)",
+    )
+    revisar.add_argument(
+        "--bibtex",
+        type=Path,
+        default=Path("revision.bib"),
+        metavar="ARCHIVO.bib",
+        help="Dónde guardar el BibTeX de lo citado (revision.bib)",
+    )
 
     comandos.add_parser(
         "ui",
@@ -150,6 +200,44 @@ def _exportar(args: argparse.Namespace) -> int:
     return 0
 
 
+def _revisar(args: argparse.Namespace) -> int:
+    # LangChain y los paquetes de los proveedores tardan en importarse: solo se cargan
+    # para este comando, no para `buscar` o `exportar`.
+    from litmar import flujo
+    from litmar.llm import ErrorDeConfiguracion, crear_modelo
+
+    if args.informe.resolve() == args.bibtex.resolve():
+        raise ValueError("el informe y el BibTeX deben ser archivos distintos")
+    try:
+        modelo = crear_modelo()
+    except ErrorDeConfiguracion as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+    revision = flujo.crear_flujo(modelo, fuentes=args.fuente, n=args.n, desde=args.desde)
+    estado = flujo.estado_inicial(args.pregunta)
+    try:
+        # "updates": lo que cambia cada nodo, para mostrarlo; "values": el estado completo.
+        for modo, datos in revision.stream(estado, stream_mode=["updates", "values"]):
+            if modo == "values":
+                estado = datos
+                continue
+            for nodo, cambios in datos.items():
+                print(f"> {nodo:<18} {flujo.describir_paso(nodo, cambios)}", flush=True)
+                for aviso in cambios.get("warnings", []):
+                    print(f"  Aviso: {aviso}", file=sys.stderr)
+    except Exception as exc:  # p. ej. un 429 del proveedor o una respuesta que no se entiende
+        print(f"Error del modelo: {type(exc).__name__}: {exc}", file=sys.stderr)
+        return 1
+
+    args.informe.write_text(flujo.informe_markdown(estado), encoding="utf-8")
+    referencias = flujo.citados(estado)
+    referencias.exportar_bibtex(args.bibtex)
+    print(f"Informe guardado en {args.informe}.")
+    print(f"{len(referencias)} artículos citados exportados a {args.bibtex}.")
+    return 0
+
+
 def _lanzar_ui(opciones: list[str]) -> int:
     """Ejecuta `streamlit run ui.py` con el mismo intérprete y entorno."""
     if importlib.util.find_spec("streamlit") is None:
@@ -187,6 +275,8 @@ def main(argv: list[str] | None = None) -> int:
     if extra:
         parser.error(f"argumentos no reconocidos: {' '.join(extra)}")
     try:
+        if args.comando == "revisar":
+            return _revisar(args)
         return _buscar(args) if args.comando == "buscar" else _exportar(args)
     except (OSError, ValueError) as exc:
         print(f"Error: {exc}", file=sys.stderr)

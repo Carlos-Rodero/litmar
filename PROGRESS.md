@@ -8,15 +8,14 @@ el registro solo crece (entradas nuevas arriba).
 
 _Actualizado: 2026-11-18._
 
-- **`main`**: al día con `origin/main`. Último trabajo: encargos 2 y 3 de la
-  Clase 2 (`resumir` y `llm.py`, commit 84641ec). **Sin commit**: la Práctica 1
-  (`ejemplos/resumir.py`) y el cambio a `method="json_schema"` (ver registro).
+- **`main`**: al día con `origin/main`. Último trabajo: el flujo LangGraph, `litmar revisar` y
+  su diagrama en `docs/flujo.md` (paso 5, ver registro).
 - **Curso**: Clase 1 (*Busca*, 17/11/2026) completa respecto a las
   diapositivas. La siguiente es la Clase 2 (*Lee*), el **18/11/2026**; sus
   diapositivas están en `docs/Clase2.pdf` y su plan, abajo. Se está
-  construyendo como ensayo, encargo a encargo: hechos los pasos 1 a 4 (`.env.example`, `resumir`, `llm.py`, Práctica 1);
-  `resumir` probado con un modelo real (Anthropic).
-- **Calidad**: 229 tests pasan, sin red, en ~1 s; `ruff check` y
+  construyendo como ensayo, encargo a encargo: hechos los pasos 1 a 5 (`.env.example`, `resumir`, `llm.py`, Práctica 1,
+  flujo LangGraph), probados con un modelo real (Anthropic).
+- **Calidad**: 246 tests pasan, sin red, en ~1,5 s; `ruff check` y
   `ruff format --check` en verde.
 - **PRs abiertas**: ninguna.
 - **Funciona**:
@@ -32,6 +31,9 @@ _Actualizado: 2026-11-18._
     `with_structured_output`), en `src/litmar/resumen.py`;
   - `crear_modelo()` en `src/litmar/llm.py`: modelo de `LITMAR_MODELO` con
     `init_chat_model`, límite de llamadas por minuto y errores claros;
+  - `litmar revisar "pregunta"`: flujo LangGraph de seis pasos
+    (`src/litmar/flujo.py`) con verificación de citas por código; guarda
+    `revision.md` y `revision.bib` (solo lo citado);
   - configuración por `.env` (plantilla en `.env.example`; todo opcional salvo
     Zotero).
 
@@ -44,8 +46,8 @@ Por orden de prioridad sugerido; nada está empezado.
    Falta ver en una sesión real que `Stop` pide anotar el progreso cuando hay
    trabajo sin registrar (los casos se probaron a mano con un repo de prueba).
 1. [ ] **Clase 2**: seguir el «Plan de la Clase 2» (abajo). El usuario lanza
-   los prompts de las diapositivas uno a uno (ensayo). Siguiente: el flujo
-   LangGraph (paso 5). Pendiente: probar con Gemini (solo se ha probado con
+   los prompts de las diapositivas uno a uno (ensayo). Siguiente: las
+   herramientas (paso 6). Pendiente: probar con Gemini (solo se ha probado con
    Anthropic). Ojo: con el límite por defecto la primera llamada espera ~6 s (el
    limitador empieza vacío).
 2. [ ] **Permisos del JSON**: `Biblioteca.guardar` deja `0600`; aplicar la umask
@@ -81,7 +83,7 @@ la documentación actual de LangChain, LangGraph y deepagents antes de programar
    `.env`.
 4. [x] **Práctica 1** (18/11) de los alumnos: `ejemplos/resumir.py` (busca 3 artículos y
    los resume). Puede convenir tenerlo hecho como referencia.
-5. [ ] **Flujo LangGraph** (`src/litmar/flujo.py`): estado `TypedDict`
+5. [x] **Flujo LangGraph** (18/11; D-17, D-18) (`src/litmar/flujo.py`): estado `TypedDict`
    (`EstadoRevision`: pregunta, artículos, resúmenes, informe…); nodos
    `planificar` (LLM: pregunta → 2-3 búsquedas), `buscar` y `filtrar` (código:
    fuentes y Biblioteca; con resumen, sin duplicados, los N mejores),
@@ -137,6 +139,38 @@ contra esto.
   proponer su hook `_antes_de_peticion` en `Fuente`.
 
 ## Registro de sesiones
+
+### 2026-11-18 — Sesión 2: flujo LangGraph y `litmar revisar` (Clase 2, encargo 5)
+
+- Prompt literal de la diapositiva 19. Primero plan y diagrama Mermaid; el
+  usuario pidió alinearlo con la diapositiva 18 (cambio: `planificar` da 2-3
+  búsquedas, no 1-3) y decidió, con la herramienta de preguntas: «mejores» = más
+  citados (D-17), marcar las citas inválidas tras 2 reescrituras (D-18), estado
+  en inglés (D-2), y commit previo de la Práctica 1 (3416434, ya en `origin`).
+- `src/litmar/flujo.py`: `EstadoRevision` (TypedDict; `warnings` con reductor
+  `operator.add`), seis nodos como clausuras dentro de `crear_flujo(modelo,
+  fuentes, n, desde, crear_fuente)`, arista condicional `decidir`. Límites en
+  código: 3 consultas, 10 seleccionados, 2 reescrituras. `planificar` y
+  `resumir` usan `method="json_schema"`. `sintetizar` sin resúmenes no llama al
+  modelo; al reescribir le pasa su informe y los DOI inválidos. Las citas se
+  extraen con una regex (`[doi:…]` o `doi.org/…`) y se normalizan con
+  `normalizar_doi`. `describir_paso` da las líneas de la demo (no imprime: la
+  UI la reutilizará). Las referencias del informe las genera el código.
+- CLI: `litmar revisar "pregunta" [--modo flujo] [--fuente] [-n ≤10] [--desde]
+  [--informe revision.md] [--bibtex revision.bib]`, con `stream(stream_mode=
+  ["updates", "values"])`. Errores del modelo → mensaje y código 1.
+- Dependencia nueva: `langgraph` (1.2.22). `tests/test_flujo.py` (16 tests):
+  aristas del grafo = diagrama, recorrido completo, reescritura, máximo de 2,
+  sin artículos, resumen que falla, CLI. 245 tests.
+- Prueba real (Anthropic) con la pregunta de la demo: 3 consultas, 50
+  artículos, 6 seleccionados, informe con 5 citas, todas verificadas, 1:35 min.
+  El filtro por citas metió dos trabajos generales sobre olas de calor: buen
+  ejemplo para la Práctica 2. No se vio una reescritura real (el modelo no
+  inventó); el camino está cubierto por tests.
+- A petición del usuario, `docs/flujo.md`: el diagrama Mermaid didáctico (LLM /
+  CÓDIGO, como la diapositiva 18), una tabla de qué lee y escribe cada nodo en
+  el estado, y el Mermaid que genera LangGraph (`get_graph().draw_mermaid()`).
+  Un test falla si este último deja de coincidir con el grafo. 246 tests.
 
 ### 2026-11-18 — Sesión 2: Práctica 1 (`ejemplos/resumir.py`) y prueba real
 

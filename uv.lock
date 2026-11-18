@@ -880,6 +880,7 @@ dependencies = [
     { name = "langchain-anthropic" },
     { name = "langchain-core" },
     { name = "langchain-google-genai" },
+    { name = "langgraph" },
     { name = "pydantic" },
     { name = "python-dotenv" },
 ]
@@ -903,6 +904,7 @@ requires-dist = [
     { name = "langchain-anthropic", specifier = ">=1.7.10" },
     { name = "langchain-core", specifier = ">=1.8.2" },
     { name = "langchain-google-genai", specifier = ">=4.5.0" },
+    { name = "langgraph", specifier = ">=1.2.22" },
     { name = "pydantic", specifier = ">=2.14.3" },
     { name = "python-dotenv", specifier = ">=1.2.4" },
     { name = "streamlit", marker = "extra == 'ui'", specifier = ">=1.67.0" },
