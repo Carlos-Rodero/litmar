@@ -128,8 +128,17 @@ del Mar, tres clases, imparte Roberto Bada). Las diapositivas están en `docs/`
     parámetros, modelos de entrada y salida, validación, documentación
     automática), una web en HTML y JavaScript que usa esa API, Docker (imágenes,
     contenedores, capas), reproducibilidad (variables de entorno, compose,
-    desarrollo dentro del contenedor) y cierre. Antes de empezar, léelas enteras
-    y vuelca el plan detallado en `PROGRESS.md` («Plan de la Clase 3»).
+    desarrollo dentro del contenedor) y cierre. El plan detallado, con los
+    prompts y lo que se comprueba, está en `PROGRESS.md` («Plan de la Clase 3»).
+  - **Principios de la Clase 3**: primero el contrato (rutas, parámetros,
+    modelos de entrada y salida, códigos de error), luego el código; la API es
+    un punto de entrada más, como la CLI y la UI, y reutiliza
+    `buscar_en_fuentes`, `flujo.revisar` y `agente.revisar` sin duplicar lógica;
+    errores con código y mensaje claro, nunca con claves; tests con `TestClient`,
+    sin red; la web solo conoce el contrato y usa rutas relativas; en Docker,
+    dependencias desde `uv.lock` antes del código, sin grupo `dev`, usuario no
+    root y secretos solo al arrancar (`--env-file`, `env_file:`), nunca en la
+    imagen (`.dockerignore`).
   - **Principios de la Clase 2** que el código debe respetar: lo que se pueda
     hacer o verificar con código no se le deja al modelo (p. ej. comprobar que
     cada DOI citado está entre los seleccionados); flujo antes que agente; límites
