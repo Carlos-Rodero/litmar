@@ -8,8 +8,8 @@ el registro solo crece (entradas nuevas arriba).
 
 _Actualizado: 2026-11-18._
 
-- **`main`**: al día con `origin/main`; **sin commit** los encargos 2 y 3 de la
-  Clase 2 (`resumir` y `llm.py`, ver registro de hoy).
+- **`main`**: al día con `origin/main`. Último trabajo: encargos 2 y 3 de la
+  Clase 2 (`resumir` y `llm.py`, commit 84641ec; ver registro de hoy).
 - **Curso**: Clase 1 (*Busca*, 17/11/2026) completa respecto a las
   diapositivas. La siguiente es la Clase 2 (*Lee*), el **18/11/2026**; sus
   diapositivas están en `docs/Clase2.pdf` y su plan, abajo. Se está
