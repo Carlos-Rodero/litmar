@@ -144,7 +144,7 @@ del Mar, tres clases, imparte Roberto Bada). Las diapositivas están en `docs/`
 
 ```bash
 uv sync                          # instala todo, incluido el grupo dev (pytest, ruff, streamlit)
-uv run pytest                    # tests (sin red; ~227, ~1 s)
+uv run pytest                    # tests (sin red; ~229, ~1 s)
 uv run ruff check --fix          # lint (reglas E, W, F, I, UP, B; línea de 100)
 uv run ruff format               # formato
 uv run litmar --help             # CLI
@@ -185,6 +185,8 @@ src/litmar/
                      _admite (validez + año); _get/_get_json con reintentos
     openalex.py crossref.py europepmc.py arxiv.py pangaea.py zotero.py
 docs/                diapositivas del curso (PDF)
+ejemplos/
+  resumir.py         Práctica 1 de la Clase 2: busca 3 artículos y los resume
 tests/
   conftest.py        fixture hacer_articulo (fábrica de Articulo válidos)
   test_*.py          uno por módulo/fuente; test_ui.py usa streamlit.testing
@@ -287,6 +289,11 @@ en `.env.example`.
   `cli.main(argv)`: así los tests no leen el `.env` real.
 - **`ruff format` también formatea los bloques de Python del README** (alinea
   distinto los comentarios). Es normal ver el README en el diff tras formatear.
+- **Salida estructurada con Claude**: `with_structured_output` de
+  `langchain-anthropic` usa por defecto `function_calling` (forzar una
+  herramienta), que avisa y puede fallar en `claude-sonnet-5-5`. Pasa siempre
+  `method="json_schema"`: lo admiten Anthropic y Gemini (en Gemini es el valor
+  por defecto). Los modelos falsos de los tests aceptan `**opciones`.
 - **`Retry-After: 0`** es válido: comprobar con `is None`, no con `or`.
 - **`Biblioteca.guardar`** deja el JSON con permisos `0600` (lo crea
   `NamedTemporaryFile`). Conocido, pendiente.

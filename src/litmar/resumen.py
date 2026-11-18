@@ -82,5 +82,8 @@ def resumir(articulo: Articulo, pregunta: str, modelo: BaseChatModel) -> Resumen
             f"Resumen:\n{articulo.abstract}",
         ),
     ]
-    estructurado = modelo.with_structured_output(ResumenArticulo)
+    # json_schema: el proveedor obliga al modelo a responder con este esquema. Es
+    # la opción recomendada en Gemini y la que funciona en los Claude recientes,
+    # donde la de por defecto (forzar una llamada a herramienta) puede fallar.
+    estructurado = modelo.with_structured_output(ResumenArticulo, method="json_schema")
     return estructurado.invoke(mensajes)

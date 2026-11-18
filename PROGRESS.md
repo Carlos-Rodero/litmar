@@ -9,12 +9,14 @@ el registro solo crece (entradas nuevas arriba).
 _Actualizado: 2026-11-18._
 
 - **`main`**: al día con `origin/main`. Último trabajo: encargos 2 y 3 de la
-  Clase 2 (`resumir` y `llm.py`, commit 84641ec; ver registro de hoy).
+  Clase 2 (`resumir` y `llm.py`, commit 84641ec). **Sin commit**: la Práctica 1
+  (`ejemplos/resumir.py`) y el cambio a `method="json_schema"` (ver registro).
 - **Curso**: Clase 1 (*Busca*, 17/11/2026) completa respecto a las
   diapositivas. La siguiente es la Clase 2 (*Lee*), el **18/11/2026**; sus
   diapositivas están en `docs/Clase2.pdf` y su plan, abajo. Se está
-  construyendo como ensayo, encargo a encargo: hechos los pasos 1 (`.env.example`), 2 (`resumir`) y 3 (`llm.py`).
-- **Calidad**: 227 tests pasan, sin red, en ~1 s; `ruff check` y
+  construyendo como ensayo, encargo a encargo: hechos los pasos 1 a 4 (`.env.example`, `resumir`, `llm.py`, Práctica 1);
+  `resumir` probado con un modelo real (Anthropic).
+- **Calidad**: 229 tests pasan, sin red, en ~1 s; `ruff check` y
   `ruff format --check` en verde.
 - **PRs abiertas**: ninguna.
 - **Funciona**:
@@ -42,12 +44,10 @@ Por orden de prioridad sugerido; nada está empezado.
    Falta ver en una sesión real que `Stop` pide anotar el progreso cuando hay
    trabajo sin registrar (los casos se probaron a mano con un repo de prueba).
 1. [ ] **Clase 2**: seguir el «Plan de la Clase 2» (abajo). El usuario lanza
-   los prompts de las diapositivas uno a uno (ensayo). Pendiente: **probar
-   `resumir` con un modelo real** («En qué fijarse» 4: compararlo con el resumen
-   original). El `.env` del usuario aún no tiene `LITMAR_MODELO` (18/11); hay un
-   script de prueba fácil de rehacer: carga `.env`, busca en Europe PMC y
-   resume un artículo. Ojo: con el límite por defecto la primera llamada espera
-   ~6 s (el limitador empieza vacío).
+   los prompts de las diapositivas uno a uno (ensayo). Siguiente: el flujo
+   LangGraph (paso 5). Pendiente: probar con Gemini (solo se ha probado con
+   Anthropic). Ojo: con el límite por defecto la primera llamada espera ~6 s (el
+   limitador empieza vacío).
 2. [ ] **Permisos del JSON**: `Biblioteca.guardar` deja `0600`; aplicar la umask
    con `os.chmod` antes de `os.replace`. Propuesto en la PR #10.
 3. [ ] **Mover el helper `cliente` de `tests/test_fuentes.py` a `conftest.py`**,
@@ -79,7 +79,7 @@ la documentación actual de LangChain, LangGraph y deepagents antes de programar
    plan gratuito; si falta la clave, error claro que diga qué poner en el `.env`.
    Ningún nombre de modelo ni clave en el código; cambiar de modelo = cambiar el
    `.env`.
-4. [ ] **Práctica 1** de los alumnos: `ejemplos/resumir.py` (busca 3 artículos y
+4. [x] **Práctica 1** (18/11) de los alumnos: `ejemplos/resumir.py` (busca 3 artículos y
    los resume). Puede convenir tenerlo hecho como referencia.
 5. [ ] **Flujo LangGraph** (`src/litmar/flujo.py`): estado `TypedDict`
    (`EstadoRevision`: pregunta, artículos, resúmenes, informe…); nodos
@@ -137,6 +137,22 @@ contra esto.
   proponer su hook `_antes_de_peticion` en `Fuente`.
 
 ## Registro de sesiones
+
+### 2026-11-18 — Sesión 2: Práctica 1 (`ejemplos/resumir.py`) y prueba real
+
+- `ejemplos/resumir.py`: carga `.env`, crea el modelo (si falta algo, imprime el
+  error y sale con 1), busca en OpenAlex los 3 primeros artículos sobre «ocean
+  acidification» que tienen resumen (pide 12) y muestra el resumen de cada uno
+  con su enlace al DOI. Si un resumen falla (p. ej. 429), sigue con los demás.
+  `TEMA` y `PREGUNTA` arriba para que cada alumno ponga los suyos. Test en
+  `tests/test_ejemplos.py` con fuente y modelo falsos.
+- **Primera prueba real** (el usuario ya tiene `anthropic:claude-sonnet-5-5` en
+  el `.env`): los tres resúmenes salen bien y marcan lo que no está en el
+  resumen («No consta…»). `langchain-anthropic` avisaba de que el método por
+  defecto (`function_calling`) puede fallar en ese modelo: `resumir` pasa ahora
+  `method="json_schema"`, válido también en Gemini. Trampa anotada en
+  `AGENTS.md` §9.
+- 229 tests.
 
 ### 2026-11-18 — Sesión 2: `llm.py` (Clase 2, encargo 3)
 

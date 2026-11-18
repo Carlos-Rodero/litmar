@@ -23,10 +23,12 @@ class ModeloFalso:
     def __init__(self, respuesta=RESUMEN_FALSO):
         self.respuesta = respuesta
         self.esquema = None
+        self.opciones = None
         self.llamadas = []
 
-    def with_structured_output(self, esquema):
+    def with_structured_output(self, esquema, **opciones):
         self.esquema = esquema
+        self.opciones = opciones
         return self
 
     def invoke(self, mensajes):
@@ -47,6 +49,7 @@ def test_devuelve_el_objeto_estructurado(hacer_articulo):
 
     assert resumen == RESUMEN_FALSO
     assert modelo.esquema is ResumenArticulo
+    assert modelo.opciones == {"method": "json_schema"}
 
 
 def test_envia_pregunta_titulo_y_resumen(hacer_articulo):

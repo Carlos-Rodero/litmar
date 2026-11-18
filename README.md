@@ -173,6 +173,10 @@ LangChain; `crear_modelo()` crea el que diga `LITMAR_MODELO`, con el límite de
 llamadas por minuto, y si falta algo en el `.env` lanza `ErrorDeConfiguracion`
 con un mensaje que dice qué añadir.
 
+`ejemplos/resumir.py` busca 3 artículos sobre *ocean acidification* y resume
+cada uno (`uv run python ejemplos/resumir.py`). Cambia `TEMA` y `PREGUNTA` por
+los tuyos, y `LITMAR_MODELO` en el `.env` para comparar modelos.
+
 ```python
 from dotenv import load_dotenv
 
