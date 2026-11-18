@@ -25,6 +25,7 @@ from langchain_core.tools import tool
 from litmar.articulo import Articulo
 from litmar.busqueda import mensaje_de_error
 from litmar.configuracion import crear_fuente, fuentes_disponibles, nombre_fuente
+from litmar.seleccion import describir_citas
 
 MAX_RESULTADOS = 10
 LARGO_RESUMEN = 400  # caracteres del resumen que ve el modelo por artículo
@@ -62,7 +63,7 @@ def formatear(articulos: Iterable[Articulo]) -> str:
         resumen = _recortar(articulo.abstract) if articulo.abstract.strip() else "(sin resumen)"
         bloques.append(
             f"{i}. {articulo.title} ({articulo.year})\n"
-            f"   DOI: {articulo.doi} | Citas: {articulo.citations}\n"
+            f"   DOI: {articulo.doi} | {describir_citas(articulo)}\n"
             f"   Resumen: {resumen}"
         )
     return "\n\n".join(bloques)

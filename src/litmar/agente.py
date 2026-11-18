@@ -47,6 +47,7 @@ from langgraph.types import Command
 from litmar import herramientas
 from litmar.articulo import Articulo
 from litmar.flujo import NO_VERIFICADA, EstadoRevision, extraer_dois, marcar_no_verificadas
+from litmar.seleccion import PESO_CITAS, PESO_RELEVANCIA, aviso_citas_no_disponibles
 
 if TYPE_CHECKING:
     from langchain_core.language_models import BaseChatModel
@@ -73,6 +74,11 @@ Cómo trabajar:
    para ver qué contiene cada una.
 3. Con lo que te devuelva el buscador, elige como mucho {n} artículos y escribe el
    informe en {ruta} con write_file. Después, termina con una frase breve.
+   Considera primero la relevancia para la pregunta (1–5). Si hay citas, combina
+   {peso_relevancia:.0%} de relevancia con {peso_citas:.0%} del «Ajuste por citas»
+   que da la herramienta. Ese ajuste usa tasa = citas / max(1, año actual - año
+   de publicación + 1), transformada a 1–5 con 1 + 4 × tasa / (1 + tasa). Si
+   pone «Citas: no disponible», usa solo la relevancia; no lo trates como cero.
 
 Reglas del informe:
 - En español y en Markdown, de 3 a 5 párrafos, sin título y sin lista de referencias
@@ -91,9 +97,12 @@ con buscar_articulos. Haz como mucho 3 búsquedas por encargo; si no hay resulta
 la fuente falla, prueba otras palabras clave en inglés u otra fuente de la lista.
 
 Devuelve solo lo relevante para el encargo. Para cada artículo útil: el DOI copiado
-tal cual, el título, el año y una o dos frases de lo que aporta según su resumen.
-Descarta los que no tengan resumen o no traten el tema. Di también qué no
-encontraste. No inventes DOI ni datos."""
+tal cual, el título, el año, su relevancia para el encargo (1–5), el ajuste por
+citas que muestra la herramienta y una o dos frases de lo que aporta según su
+resumen. Si el recuento no está disponible, indícalo literalmente y evalúa el
+artículo solo por su relevancia. No descartes un artículo solo porque no tenga
+recuento. Descarta los que no tengan resumen o no traten el tema. Di también qué
+no encontraste. No inventes DOI ni datos."""
 
 DESCRIPCION_BUSCADOR = (
     "Busca artículos científicos sobre un aspecto concreto en las fuentes de litmar y "
@@ -183,7 +192,13 @@ def crear_agente(
     return create_deep_agent(
         model=modelo,
         tools=[listar],
-        system_prompt=INSTRUCCIONES.format(fuentes=", ".join(fuentes), n=n, ruta=RUTA_INFORME),
+        system_prompt=INSTRUCCIONES.format(
+            fuentes=", ".join(fuentes),
+            n=n,
+            ruta=RUTA_INFORME,
+            peso_relevancia=PESO_RELEVANCIA,
+            peso_citas=PESO_CITAS,
+        ),
         middleware=[
             TodoListMiddleware(),  # write_todos: la lista de tareas
             FilesystemMiddleware(backend=backend, tools=["ls", "read_file", "write_file"]),
@@ -381,6 +396,11 @@ def estado_final(
             "El informe citaba DOI que no salieron de ninguna búsqueda "
             f"({', '.join(invalidos)}): marcados como «{NO_VERIFICADA}»."
         )
+    aviso = aviso_citas_no_disponibles(
+        registro.articles[doi] for doi in validos if doi in registro.articles
+    )
+    if aviso:
+        avisos.append(aviso)
     return {
         "question": pregunta,
         "queries": list(registro.searches),

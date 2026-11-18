@@ -145,11 +145,38 @@ def test_herramientas_del_agente_y_del_buscador():
 
 
 def test_las_instrucciones_dicen_lo_que_queremos():
-    texto = agente.INSTRUCCIONES
+    texto = agente.INSTRUCCIONES.format(
+        fuentes="OpenAlex",
+        n=6,
+        ruta=agente.RUTA_INFORME,
+        peso_relevancia=agente.PESO_RELEVANCIA,
+        peso_citas=agente.PESO_CITAS,
+    )
     assert "write_todos" in texto
     assert "buscador" in texto and "varias fuentes" in texto
     assert "Cita solo DOI que te haya devuelto el buscador" in texto
+    assert "70% de relevancia" in texto
+    assert "Citas: no disponible" in texto
     assert "## Lo que no se encontró" in texto
+    assert "relevancia para el encargo (1–5)" in agente.INSTRUCCIONES_BUSCADOR
+
+
+def test_estado_final_avisa_si_un_doi_citado_no_tiene_recuento(hacer_articulo):
+    from types import SimpleNamespace
+
+    articulo = hacer_articulo(citations=None)
+    registro = agente.Registro(articles={articulo.doi: articulo})
+    agente_falso = SimpleNamespace(
+        get_state=lambda config: SimpleNamespace(
+            values={"files": {agente.RUTA_INFORME: {"content": f"[doi:{articulo.doi}]."}}}
+        )
+    )
+
+    estado = agente.estado_final(agente_falso, {}, PREGUNTA, registro)
+
+    assert len(estado["warnings"]) == 1
+    assert articulo.doi in estado["warnings"][0]
+    assert "solo la relevancia" in estado["warnings"][0]
 
 
 # --- Recorrido completo

@@ -9,9 +9,9 @@ Clase 2.
 flowchart LR
     START([START]) --> planificar
     planificar["<b>LLM</b><br/>planificar<br/><i>Convierte la pregunta en 2-3 búsquedas</i>"] --> buscar
-    buscar["<b>CÓDIGO</b><br/>buscar<br/><i>Consulta las fuentes</i>"] --> filtrar
-    filtrar["<b>CÓDIGO</b><br/>filtrar<br/><i>Con resumen, sin duplicados, los N más citados</i>"] --> resumir_articulos
-    resumir_articulos["<b>LLM</b><br/>resumir_articulos<br/><i>Un resumen estructurado por artículo</i>"] --> sintetizar
+    buscar["<b>CÓDIGO</b><br/>buscar<br/><i>Consulta las fuentes</i>"] --> resumir_articulos
+    resumir_articulos["<b>LLM</b><br/>resumir_articulos<br/><i>Puntúa la relevancia de los candidatos</i>"] --> filtrar
+    filtrar["<b>CÓDIGO</b><br/>filtrar<br/><i>Selecciona los N con mejor puntuación</i>"] --> sintetizar
     sintetizar["<b>LLM</b><br/>sintetizar<br/><i>Escribe la síntesis citando por DOI</i>"] --> verificar_citas
     verificar_citas["<b>CÓDIGO</b><br/>verificar_citas<br/><i>¿Cada DOI citado está entre los seleccionados?</i>"]
     verificar_citas -- "citas inventadas: reescribir (máx. 2)" --> sintetizar
@@ -27,14 +27,16 @@ flowchart LR
 | --- | --- | --- | --- |
 | `planificar` | LLM | `question` | `queries` (2-3; el código recorta a `MAX_CONSULTAS` = 3) |
 | `buscar` | CÓDIGO | `queries` | `articles` (sin duplicados), `warnings` si falla una fuente |
-| `filtrar` | CÓDIGO | `articles` | `selected`: con resumen, los N más citados (máx. `MAX_SELECCIONADOS` = 10) |
-| `resumir_articulos` | LLM | `selected`, `question` | `summaries` (DOI → `ResumenArticulo`), `warnings` |
+| `resumir_articulos` | LLM | `articles`, `question` | `summaries` (DOI → `ResumenArticulo`), `warnings` |
+| `filtrar` | CÓDIGO | `articles`, `summaries` | `selected`: los N con mejor puntuación combinada (máx. `MAX_SELECCIONADOS` = 10) |
 | `sintetizar` | LLM | `summaries`, y al reescribir `report` e `invalid` | `report`, `rewrites` |
-| `verificar_citas` | CÓDIGO | `report`, `summaries`, `rewrites` | `cited`, `invalid`; tras `MAX_REESCRITURAS` = 2, `unverified` y el informe marcado |
+| `verificar_citas` | CÓDIGO | `report`, `selected`, `rewrites` | `cited`, `invalid`; tras `MAX_REESCRITURAS` = 2, `unverified` y el informe marcado |
 
-La arista condicional (`decidir`) vuelve a `sintetizar` si hay DOI inventados y
-quedan reescrituras; si no, termina. Las decisiones de diseño están en
-`DECISIONS.md` (D-17 y D-18).
+La puntuación combina relevancia (70 %) y una puntuación de citas anualizadas
+(30 %). Si el recuento no está disponible, usa solo la relevancia y lo señala
+en los avisos. La arista condicional (`decidir`) vuelve a `sintetizar` si hay
+DOI inventados y quedan reescrituras; si no, termina. Las decisiones están en
+`DECISIONS.md` (D-18 y D-23).
 
 ## Generado desde el código
 
@@ -56,16 +58,16 @@ graph TD;
 	__start__([<p>__start__</p>]):::first
 	planificar(planificar)
 	buscar(buscar)
-	filtrar(filtrar)
 	resumir_articulos(resumir_articulos)
+	filtrar(filtrar)
 	sintetizar(sintetizar)
 	verificar_citas(verificar_citas)
 	__end__([<p>__end__</p>]):::last
 	__start__ --> planificar;
-	buscar --> filtrar;
-	filtrar --> resumir_articulos;
+	buscar --> resumir_articulos;
+	filtrar --> sintetizar;
 	planificar --> buscar;
-	resumir_articulos --> sintetizar;
+	resumir_articulos --> filtrar;
 	sintetizar --> verificar_citas;
 	verificar_citas -. &nbsp;fin&nbsp; .-> __end__;
 	verificar_citas -. &nbsp;reescribir&nbsp; .-> sintetizar;

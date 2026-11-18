@@ -161,7 +161,15 @@ def _recortar(texto: str, ancho: int) -> str:
 
 def tabla(articulos: Iterable[Articulo], ancho: int | None = None) -> str:
     """Tabla AÑO · CITAS · AUTORES · TÍTULO ajustada al ancho de la terminal."""
-    filas = [(str(a.year), str(a.citations), a.short_authors, a.title) for a in articulos]
+    filas = [
+        (
+            str(a.year),
+            str(a.citations) if a.citations is not None else "No disponible",
+            a.short_authors,
+            a.title,
+        )
+        for a in articulos
+    ]
     if not filas:
         return ""
     ancho = ancho or shutil.get_terminal_size((100, 24)).columns

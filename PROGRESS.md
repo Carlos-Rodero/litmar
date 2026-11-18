@@ -8,16 +8,17 @@ el registro solo crece (entradas nuevas arriba).
 
 _Actualizado: 2026-11-18._
 
-- **`main`**: al día con `origin/main`. Último trabajo: el arreglo de `--aprobar` con
-  buscadores en paralelo y la pestaña «Revisión» de la UI (paso 9).
+- **`main`**: al día con `Sapere-IA/litmar/main` y `origin/main` en
+  `db90288`. Último trabajo: selección combinada por relevancia y citas
+  anualizadas, con recuentos no disponibles identificados.
 - **Curso**: Clase 1 (*Busca*, 17/11/2026) completa respecto a las
   diapositivas. La siguiente es la Clase 2 (*Lee*), el **18/11/2026**; sus
   diapositivas están en `docs/Clase2.pdf` y su plan, abajo. Se está
   construyendo como ensayo, encargo a encargo: hechos los pasos 1 a 6, el 8 y el 9 (`.env.example`, `resumir`, `llm.py`,
   Práctica 1, flujo LangGraph, herramientas, agente, pestaña «Revisión»); la
   votación (7) se hace en clase, probados con un modelo real (Anthropic).
-- **Calidad**: 299 tests pasan, sin red, en ~1,5 s; `ruff check` y
-  `ruff format --check` en verde.
+- **Calidad**: 312 tests pasan sin red; `ruff check`, `ruff format --check` y
+  `uv lock --check` en verde.
 - **PRs abiertas**: ninguna.
 - **Funciona**:
   - modelo `Articulo` y `Biblioteca` (dedup por DOI, BibTeX, CSV, JSON);
@@ -42,6 +43,9 @@ _Actualizado: 2026-11-18._
   - `litmar revisar … --modo agente [--aprobar]`: agente de Deep Agents con
     subagente buscador, lista de tareas, límites y citas comprobadas
     (`src/litmar/agente.py`); mismo informe y BibTeX que el flujo;
+  - selección por 70 % de relevancia y 30 % de citas/año ajustadas; si falta el
+    recuento, se usa solo la relevancia y se avisa. `citations=None` distingue
+    el dato ausente de un recuento real de cero;
   - configuración por `.env` (plantilla en `.env.example`; todo opcional salvo
     Zotero).
 
@@ -95,8 +99,9 @@ la documentación actual de LangChain, LangGraph y deepagents antes de programar
 5. [x] **Flujo LangGraph** (18/11; D-17, D-18) (`src/litmar/flujo.py`): estado `TypedDict`
    (`EstadoRevision`: pregunta, artículos, resúmenes, informe…); nodos
    `planificar` (LLM: pregunta → 2-3 búsquedas), `buscar` y `filtrar` (código:
-   fuentes y Biblioteca; con resumen, sin duplicados, los N mejores),
-   `resumir_articulos` (con `resumir()`), `sintetizar` (LLM, cita por DOI) y
+   fuentes y Biblioteca; sin duplicados, los N con mejor puntuación),
+   `resumir_articulos` (con `resumir()` para los candidatos con resumen),
+   `sintetizar` (LLM, cita por DOI) y
    `verificar_citas` (código: cada DOI citado está entre los seleccionados; si
    no, vuelve a `sintetizar`, máximo 2 veces). Comando `litmar revisar
    "pregunta" --modo flujo` que muestra cada paso (ver demo, diapositiva 21) y
@@ -160,6 +165,34 @@ contra esto.
   proponer su hook `_antes_de_peticion` en `Fuente`.
 
 ## Registro de sesiones
+
+### 2026-11-18 — Selección por relevancia y citas anualizadas
+
+- D-23 sustituye el orden por citas totales (D-17): se combina 70 % de
+  relevancia (1–5) con 30 % de la puntuación de citas anualizadas, ajustada a
+  escala 1–5. Sin recuento disponible, se usa solo relevancia.
+- `Articulo.citations` ahora permite `None`; arXiv, Zotero y PANGAEA lo usan al
+  no ofrecer recuento. OpenAlex, Crossref y Europe PMC preservan el cero y
+  distinguen un campo ausente. UI, CLI, herramientas e informes identifican el
+  dato ausente.
+- El flujo resume todos los candidatos con resumen antes de escoger los N, por
+  lo que puede hacer más llamadas al modelo. En modo agente, las herramientas
+  exponen la tasa/ajuste y el prompt pide la misma puntuación.
+- Preparado para PR en la rama local `feat/citation-aware-selection`; el commit
+  no se ha enviado.
+- Validación: 312 tests, Ruff, formato y lockfile en verde.
+
+### 2026-11-18 — Sincronización con `Sapere-IA/litmar/main`
+
+- Se actualizó `main` hasta `db90288` (cuatro commits; coincide con
+  `origin/main`), incluyendo el arreglo de aprobaciones paralelas y la pestaña
+  «Revisión».
+- Al reaplicar cambios locales staged hubo solapamientos con esas
+  implementaciones. Se eligió upstream como versión autoritativa; el trabajo
+  local completo se conserva en `stash@{0}` por si hay que recuperar alguna
+  diferencia.
+- Validación: 299 tests; `ruff check`, `ruff format --check` y `uv lock --check`
+  pasan.
 
 ### 2026-11-18 — Sesión 2: pestaña «Revisión» en la UI (Clase 2, encargo 9)
 
