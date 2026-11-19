@@ -19,6 +19,10 @@ _Actualizado: 2026-11-18._
   votación (7) se hace en clase, probados con un modelo real (Anthropic).
 - **Calidad**: 312 tests pasan sin red; `ruff check`, `ruff format --check` y
   `uv lock --check` en verde.
+  La Clase 3 (*APIs, reproducibilidad y transferencia*, **19/11/2026**) tiene
+  sus diapositivas en `docs/Clase3.pdf` y su plan abajo; no hay nada empezado.
+- **Calidad**: 299 tests pasan, sin red, en ~1,5 s; `ruff check` y
+  `ruff format --check` en verde.
 - **PRs abiertas**: ninguna.
 - **Funciona**:
   - modelo `Articulo` y `Biblioteca` (dedup por DOI, BibTeX, CSV, JSON);
@@ -57,20 +61,22 @@ Por orden de prioridad sugerido; nada está empezado.
    18/11/2026, al reanudar la sesión, inyectó el estado de este fichero y de git.
    Falta ver en una sesión real que `Stop` pide anotar el progreso cuando hay
    trabajo sin registrar (los casos se probaron a mano con un repo de prueba).
-1. [ ] **Clase 2**: seguir el «Plan de la Clase 2» (abajo). El usuario lanza
+1. [ ] **Clase 3** (19/11/2026): seguir el «Plan de la Clase 3» (abajo),
+   encargo a encargo y con el contrato propuesto antes del código. Para probar
+   los encargos 4-6 hace falta Docker (no instalado en la máquina del ensayo).
+2. [ ] **Clase 2**: seguir el «Plan de la Clase 2» (abajo). El usuario lanza
    los prompts de las diapositivas uno a uno (ensayo). La Clase 2
-   está construida; queda la votación (paso 7, en clase) y, para la Clase 3,
-   esperar sus diapositivas en `docs/`. Pendiente: probar con Gemini (solo se ha probado con
+   está construida; queda la votación (paso 7, en clase). Pendiente: probar con Gemini (solo se ha probado con
    Anthropic). Ojo: con el límite por defecto la primera llamada espera ~6 s (el
    limitador empieza vacío).
-2. [ ] **Permisos del JSON**: `Biblioteca.guardar` deja `0600`; aplicar la umask
+3. [ ] **Permisos del JSON**: `Biblioteca.guardar` deja `0600`; aplicar la umask
    con `os.chmod` antes de `os.replace`. Propuesto en la PR #10.
-3. [ ] **Mover el helper `cliente` de `tests/test_fuentes.py` a `conftest.py`**,
+4. [ ] **Mover el helper `cliente` de `tests/test_fuentes.py` a `conftest.py`**,
    para que `test_pangaea.py` no importe de otro fichero de tests.
-4. [ ] **`pyproject.toml`**: cambiar `description = "Add your description here"`.
-5. [ ] **«Desde el año» en la UI**: `buscar_en_fuentes` ya admite `desde`; falta
+5. [ ] **`pyproject.toml`**: cambiar `description = "Add your description here"`.
+6. [ ] **«Desde el año» en la UI**: `buscar_en_fuentes` ya admite `desde`; falta
    el campo en `ui.py`.
-6. [ ] **Ideas para la UI** (sin pedir aún): guardar/cargar la biblioteca JSON,
+7. [ ] **Ideas para la UI** (sin pedir aún): guardar/cargar la biblioteca JSON,
    filtrar u ordenar resultados, mostrar de qué fuente viene cada artículo.
 
 ## Plan de la Clase 2 (de `docs/Clase2.pdf`)
@@ -127,7 +133,136 @@ la documentación actual de LangChain, LangGraph y deepagents antes de programar
    número de artículos; pasos en vivo; informe con los DOI como enlaces; mensaje
    claro si falta la clave. Reutilizar las funciones de revisión (refactor
    mínimo si imprimen por pantalla) sin romper la terminal.
-10. [ ] **Para la Clase 3**: los alumnos deben comprobar `docker run hello-world`.
+10. [ ] **Para la Clase 3**: los alumnos deben comprobar `docker run hello-world`
+    (la Práctica 2 de la Clase 3 lo necesita; sin Docker, en parejas).
+
+## Plan de la Clase 3 (de `docs/Clase3.pdf`)
+
+*APIs, reproducibilidad y transferencia*, 19/11/2026. Mismo método que la
+Clase 2: encargos «en directo» copiados de las diapositivas, cada uno con su
+columna «En qué fijarse», y **plan antes que código** (las diapositivas lo
+piden explícitamente: «Primero propón el contrato», «Antes, dime qué rutas
+usará»). Consultar la documentación actual de FastAPI, uvicorn, uv (guía de
+Docker) y nginx antes de escribir código.
+
+Guion de la clase: repaso (d. 3) → **01 Tu propia API** (d. 4-14: vocabulario
+HTTP, FastAPI, encargos 1 y 2, Práctica 1) → descanso → **02 Docker** (d. 16-28:
+imagen/contenedor/capas, Dockerfile, ciclo de vida, secretos, compose,
+encargos 3 y 4, Práctica 2, checklist de reproducibilidad) → **03 Cierre**
+(d. 29-34: recapitulación, lluvia de ideas, «del caso de uso al primer
+encargo», cómo seguir).
+
+1. [ ] **API con FastAPI** (diapositiva 9) en `src/litmar/api.py`.
+   Prompt: «Expón litmar como API con FastAPI en src/litmar/api.py: GET /salud,
+   GET /fuentes, GET /buscar (varias fuentes y año mínimo, con
+   buscar_en_fuentes) y POST /revisiones (flujo o agente, con flujo.revisar y
+   agente.revisar; devuelve el informe y el BibTeX, no los guarda en disco).
+   Primero propón el contrato: parámetros, modelos de entrada y salida y códigos
+   de error de cada ruta. Token opcional desde el .env. Tests con TestClient,
+   sin red, y un comando litmar servir.»
+   - En qué fijarse: (1) ¿el contrato tiene sentido antes de programar?
+     (2) ¿llama a `buscar_en_fuentes` y a `revisar` o duplica lógica? (3) `n=0`
+     en `/docs` da 422; (4) ¿qué devuelve si falla una fuente o falta la clave
+     del LLM?
+   - Lo que hay que decidir al proponer el contrato (anotar en `DECISIONS.md`):
+     - **Errores** (d. 6 y 11: 200, 422, 401, 502): `buscar_en_fuentes` ya
+       recoge los errores por fuente; propuesta: 200 con una lista `errores` si
+       alguna fuente responde, **502** solo si fallan todas. Falta de
+       configuración del modelo (`ErrorDeConfiguracion`): **503** con el mensaje
+       de qué poner en el `.env`, sin claves ni peticiones (§7).
+     - **Token**: `LITMAR_API_TOKEN` (nombre a confirmar) en `.env.example`;
+       sin él la API es abierta; con él, `Authorization: Bearer …` comparado con
+       `secrets.compare_digest`, 401 si no cuadra. ¿`/salud` y `/` sin token?
+       Si hay token, la web (encargo 2) necesita pedirlo o la API no la deja
+       buscar: decidir antes de ese encargo.
+     - **`/revisiones` es síncrona** y tarda minutos (d. 11 «Tareas largas»: en
+       producción se devolvería un id; aquí no, a propósito). `--aprobar` no
+       tiene sentido en HTTP: el modo agente va sin aprobación.
+     - **Límites**: `n` entre 1 y 50 (`Query(ge=1, le=50)`, d. 8) en `/buscar`;
+       en `/revisiones`, el `MAX_SELECCIONADOS` del flujo. «Límites de uso» por
+       cliente (d. 11) solo se menciona.
+     - **Modelos de salida Pydantic** (`ArticuloSalida.desde(articulo)`, d. 8):
+       mismos campos que el JSON de `Biblioteca`.
+   - `litmar servir [--host 127.0.0.1] [--puerto 8000] [--recargar]` con
+     uvicorn (con `--recargar` hay que pasar la app como texto,
+     `"litmar.api:app"`). `uv add fastapi uvicorn` (TestClient usa httpx, que ya
+     está). Sección en el README.
+   - Demo (d. 10): `uv run litmar servir --recargar`, `/docs`, `curl
+     "http://127.0.0.1:8000/buscar?consulta=posidonia&n=2"`.
+2. [ ] **Web en HTML y JavaScript** (diapositiva 13) en
+   `src/litmar/web/index.html`. Prompt: «Crea una página web en
+   src/litmar/web/index.html (HTML, CSS y JavaScript, sin npm ni compilación)
+   que use nuestra API: búsqueda con fuentes y año mínimo, tabla con los DOI
+   enlazados y un botón Revisar que llame a POST /revisiones, muestre el
+   informe y deje descargar el BibTeX. Que la API la sirva en /. Avisa de que
+   una revisión tarda minutos y muestra los errores con claridad. Usa rutas
+   relativas (/buscar), sin la dirección del servidor. Antes, dime qué rutas
+   usará y con qué parámetros.»
+   - En qué fijarse: (1) solo rutas del contrato, sin cambiar la API; (2) F12 >
+     Red: qué pide y qué devuelve; (3) por qué no hace falta CORS (mismo origen)
+     y qué pasaría en otro dominio; (4) qué ve el usuario mientras espera o si
+     algo falla.
+   - Comprobar que `uv_build` mete `web/index.html` en el paquete (la API la
+     lee del paquete, no de la carpeta del repo) y test de que `/` devuelve la
+     página. El informe llega en Markdown: decidir si se muestra como texto o
+     con una conversión mínima sin librerías externas (sin npm).
+3. [ ] **Práctica 1** de los alumnos (d. 14, 20 min): `litmar servir`, web en
+   `/` y `/docs`, F12 > Red, provocar un 422, pedir a la IA una mejora o una
+   ruta nueva (exportar en BibTeX) con su test. Puede convenir tener hecha la
+   ruta de BibTeX como referencia (sin integrarla).
+4. [ ] **Dockerfile** (diapositivas 19-20). Prompt: «Crea un Dockerfile para
+   litmar usando uv con la imagen oficial de Astral y Python 3.12 slim. Instala
+   las dependencias desde uv.lock antes de copiar el código para aprovechar la
+   caché, sin dependencias de desarrollo (pytest, ruff y Streamlit no hacen
+   falta en el servidor), usuario no root, y nada de secretos dentro: añade un
+   .dockerignore. Comenta cada línea.» Y la revisión: «Revisa este Dockerfile
+   como un experto en seguridad y reproducibilidad. ¿Qué se copia que no
+   debería? ¿Qué capa se rompe en cada cambio? No cambies nada.»
+   - Referencia: el Dockerfile de la d. 19 (`FROM python:3.12-slim`, `COPY
+     --from=ghcr.io/astral-sh/uv`, `UV_NO_DEV=1`, `uv sync --locked
+     --no-install-project`, `COPY . .`, `uv sync --locked`, `useradd`, `USER
+     app`, `EXPOSE 8000`, `CMD … litmar servir --host 0.0.0.0`).
+   - Ojo: Streamlit está en el extra `ui` y en el grupo `dev`, así que no entra
+     en la imagen; `litmar ui` dentro del contenedor debe dar un error claro
+     (ya importa Streamlit solo al usarlo). El `.dockerignore` debe excluir
+     `.env`, `.env.*` (salvo `.env.example`), `.venv` (binarios de macOS),
+     `.git`, cachés, `tests/`, `docs/` (PDFs) y `ejemplos/revisiones/`, pero
+     **no** `README.md` (`pyproject` lo declara y `uv_build` lo necesita).
+     Comprobar que `uv run` como usuario `app` no intenta reescribir `.venv`
+     (propiedad de root); si lo hace, `--no-sync` o `chown`.
+5. [ ] **compose.yaml con dos servicios** (diapositiva 24). Prompt: «Crea un
+   compose.yaml con dos servicios: api (nuestra imagen, litmar servir en
+   0.0.0.0, puerto 8000, .env al arrancar) y web (imagen oficial de nginx,
+   puerto 8080) que sirva src/litmar/web y reenvíe a api las rutas de la API
+   usando el nombre del servicio, con tiempo de espera de varios minutos para
+   las revisiones. Explícame cada línea y cómo arrancar, ver los logs y parar.»
+   - En qué fijarse: (1) cómo encuentra `web` a `api` (DNS de compose por
+     nombre de servicio); (2) qué rutas reenvía nginx y si funciona `/docs`
+     (necesita también `/openapi.json`); (3) el `.env` llega solo a `api` y no
+     está en ninguna imagen; (4) si se para `api`, qué muestra la web (502 de
+     nginx: la web debe mostrarlo claro, enlaza con el encargo 2).
+   - nginx con `proxy_read_timeout` (y `proxy_send_timeout`) de varios minutos;
+     su configuración en un fichero del repo montado de solo lectura. Demo
+     (d. 25): `docker compose up --build`, `docker compose ps`,
+     `localhost:8080` (web) y `localhost:8000/docs` (API). Variante de
+     desarrollo comentada (d. 23): `volumes: [./src:/app/src]` y `--recargar`.
+6. [ ] **Práctica 2** (d. 27, 30 min; sin Docker, en parejas): `docker compose
+   up --build` (o `podman compose`), una búsqueda y una revisión en `:8080`,
+   comprobar que el `.env` no está en la imagen (p. ej. `docker run --rm litmar
+   ls -la /app`), cambiar código y ver qué capas se rehacen.
+7. [ ] **Checklist de reproducibilidad** (d. 28): `uv.lock`, `.env.example`
+   documentado, ningún secreto en git ni en la imagen, tests sin internet,
+   README con cómo instalar y ejecutar (añadir API y Docker), funciona en una
+   máquina limpia. Aprovechar para cerrar el paso 5 de «Próximos pasos»
+   (`description` de `pyproject.toml`).
+8. [ ] **Cierre** (d. 29-34): sin código. Lluvia de ideas (datos, literatura,
+   servicios), prompt «del caso de uso al primer encargo» (d. 32). La d. 33
+   avisa de que la clave del curso caduca el 19/11 a las 14:00 y recomienda
+   Gemini con plan gratuito.
+
+Requisitos en la máquina del ensayo: **Docker no está instalado** (comprobado
+el 18/11, tampoco Podman). Sin él se pueden escribir el Dockerfile y el
+compose, pero no probarlos (encargos 4-6).
 
 ## Cabos sueltos
 
@@ -193,6 +328,19 @@ contra esto.
   diferencia.
 - Validación: 299 tests; `ruff check`, `ruff format --check` y `uv lock --check`
   pasan.
+### 2026-11-18 — Sesión 2: diapositivas de la Clase 3
+
+- Añadido `docs/Clase3.pdf` (*APIs, reproducibilidad y transferencia*,
+  19/11/2026, 35 diapositivas); commit `9dbd220`. Hoja de ruta de `AGENTS.md`
+  actualizada.
+- Leídas enteras y volcadas en «Plan de la Clase 3»: cuatro encargos en
+  directo (API FastAPI en `api.py` + `litmar servir`, web en
+  `src/litmar/web/index.html`, Dockerfile con uv, `compose.yaml` con api +
+  nginx), dos prácticas, la checklist de reproducibilidad y el cierre. Para
+  cada encargo se anotaron el prompt literal, «En qué fijarse» y las decisiones
+  que habrá que tomar al proponer el contrato (códigos 502/503, token, revisión
+  síncrona, sin `--aprobar` en HTTP). Principios de la Clase 3 añadidos a
+  `AGENTS.md` §2. Docker no está instalado en esta máquina: avisado en el plan.
 
 ### 2026-11-18 — Sesión 2: pestaña «Revisión» en la UI (Clase 2, encargo 9)
 
