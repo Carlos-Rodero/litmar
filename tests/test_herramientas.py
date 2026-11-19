@@ -91,6 +91,15 @@ def test_articulo_sin_resumen(usar_fuente, hacer_articulo):
     assert "Resumen: (sin resumen)" in buscar(consulta="x")
 
 
+def test_resultado_indica_cuando_no_hay_recuento_de_citas(usar_fuente, hacer_articulo):
+    usar_fuente(FuenteFalsa([hacer_articulo(citations=None)]))
+
+    texto = buscar(consulta="redes", fuente="OpenAlex", n=1)
+
+    assert "Citas: no disponible" in texto
+    assert "solo en relevancia" in texto
+
+
 def test_sin_resultados_sugiere_otra_busqueda(usar_fuente):
     usar_fuente(FuenteFalsa([]))
 

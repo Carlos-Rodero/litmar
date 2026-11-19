@@ -26,7 +26,7 @@ def fuentes(monkeypatch, hacer_articulo):
     """Sustituye las fuentes reales: OpenAlex y Crossref comparten un DOI."""
     comun = hacer_articulo()
     fuentes = {
-        "OpenAlex": FuenteFalsa([comun, hacer_articulo(doi="10.1/a", year=2019)]),
+        "OpenAlex": FuenteFalsa([comun, hacer_articulo(doi="10.1/a", year=2019, citations=None)]),
         "Crossref": FuenteFalsa([comun, hacer_articulo(doi="10.1/b", citations=7)]),
         "arXiv": FuenteFalsa(
             error=httpx.HTTPStatusError(
@@ -54,6 +54,7 @@ def test_busca_en_varias_fuentes_sin_duplicar(fuentes):
     tabla = app.dataframe[0].value
     assert list(tabla.columns) == ["Año", "Citas", "Autores", "Título", "DOI"]
     assert len(tabla) == 3
+    assert tabla["Citas"].iloc[1] == "No disponible"
     assert tabla["DOI"].tolist() == [
         "https://doi.org/10.1000/xyz123",
         "https://doi.org/10.1/a",

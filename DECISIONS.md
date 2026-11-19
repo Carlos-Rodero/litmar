@@ -104,7 +104,7 @@ comprueba antes de crear el modelo para dar un error que diga qué línea añadi
 al `.env`. Como D-8, `llm.py` lee el entorno y no carga `.env`: lo hace el
 comando `litmar`; los scripts propios llaman a `load_dotenv()`.
 
-### D-17 · Flujo de revisión: «los N mejores» son los más citados — 2026-11-18
+### D-17 · Flujo de revisión: «los N mejores» son los más citados — 2026-11-18 (sustituida por D-23)
 `filtrar` se queda con los artículos con resumen y los ordena por citas. Es
 fácil de explicar y de comprobar, aunque favorece lo antiguo (en la prueba real
 entraron revisiones generales sobre olas de calor). Cambiar el criterio es el
@@ -116,7 +116,7 @@ Tras `MAX_REESCRITURAS` (2), `verificar_citas` sustituye cada DOI que no está
 entre los resumidos por «[cita no verificada]» y añade un aviso. Así ningún DOI
 sin comprobar llega al informe ni al BibTeX. Descartado: guardar el informe tal
 cual con un aviso, o fallar sin guardar nada. «Seleccionados» son los artículos
-que el modelo vio (los resumidos), no todos los que pasaron `filtrar`. Las
+que el modelo vio en la síntesis, no todos los candidatos puntuados. Las
 referencias del informe las genera el código a partir de los DOI verificados.
 Lo eligió el usuario. Los campos del estado (`EstadoRevision`) van en inglés por
 D-2, aunque la diapositiva diga «pregunta, artículos…».
@@ -181,3 +181,15 @@ diseño: guardar el grafo en la sesión y reanudar en otra ejecución); queda pa
 la terminal. Si falta la configuración del modelo, aviso con la línea del `.env`
 y botón desactivado. `MAX_ARTICULOS_REVISION` repite `MAX_SELECCIONADOS` para
 no cargar LangGraph al abrir la UI; un test comprueba que coinciden.
+
+### D-23 · Selección combinada con relevancia y citas anualizadas — 2026-11-18
+La relevancia para la pregunta (1–5) pesa 70 % y la puntuación de citas ajustada
+30 %. Para esta implementación se adopta esa proporción para mantener la
+relevancia como señal principal. Para el ajuste,
+`tasa = citas / max(1, año_actual - año_publicación + 1)`
+y `puntuación_citas = 1 + 4 × tasa / (1 + tasa)`, en escala 1–5. Un `citations`
+igual a `None` significa que la fuente no proporciona el dato: en ese caso se
+usa solo la relevancia y se avisa. `0` sigue significando cero citas conocidas.
+El flujo calcula la puntuación con código; en modo agente, la herramienta expone
+la tasa y el ajuste, y el prompt pide aplicar la misma regla. Se sustituye
+D-17, que ordenaba por citas totales.

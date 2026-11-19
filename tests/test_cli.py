@@ -266,3 +266,7 @@ def test_tabla_recorta_al_ancho(hacer_articulo):
     assert all(len(linea) <= 80 for linea in lineas)
     assert lineas[1].endswith("…")
     assert lineas[1].startswith("2021  12345  García et al.")
+
+
+def test_tabla_identifica_citas_no_disponibles(hacer_articulo):
+    assert "No disponible" in tabla([hacer_articulo(citations=None)], ancho=100)

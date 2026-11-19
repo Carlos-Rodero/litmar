@@ -154,8 +154,8 @@ uv run litmar revisar "¿Cómo afecta el calentamiento a las praderas de Posidon
 ```
 > planificar         3 consultas
 > buscar             50 artículos
+> resumir_articulos  M resúmenes
 > filtrar            6 seleccionados
-> resumir_articulos  6 resúmenes
 > sintetizar         informe (5 citas)
 > verificar_citas    ok
 Informe guardado en ejemplos/revisiones/2026-11-18_1530_como-afecta-el-calentamiento-a-las-praderas-de/revision.md.
@@ -169,17 +169,25 @@ el modelo y tres son código normal:
 flowchart LR
     START([START]) --> planificar
     planificar["LLM · planificar<br/>Convierte la pregunta en 2-3 búsquedas"] --> buscar
-    buscar["CÓDIGO · buscar<br/>Consulta las fuentes"] --> filtrar
-    filtrar["CÓDIGO · filtrar<br/>Con resumen, sin duplicados, los N más citados"] --> resumir_articulos
-    resumir_articulos["LLM · resumir_articulos<br/>Un resumen estructurado por artículo"] --> sintetizar
+    buscar["CÓDIGO · buscar<br/>Consulta las fuentes"] --> resumir_articulos
+    resumir_articulos["LLM · resumir_articulos<br/>Puntúa la relevancia de los candidatos"] --> filtrar
+    filtrar["CÓDIGO · filtrar<br/>Selecciona los N con mejor puntuación"] --> sintetizar
     sintetizar["LLM · sintetizar<br/>Escribe la síntesis citando por DOI"] --> verificar_citas
     verificar_citas["CÓDIGO · verificar_citas<br/>¿Cada DOI citado está entre los seleccionados?"]
     verificar_citas -- "citas inventadas: reescribir (máx. 2)" --> sintetizar
     verificar_citas -- "ok" --> END([END])
 ```
 
+- **Selección:** combina 70 % de relevancia (1–5) con 30 % de una puntuación
+  de citas anualizadas. Las citas se dividen por los años desde la publicación y
+  se ajustan con `1 + 4 × tasa / (1 + tasa)`, donde
+  `tasa = citas / max(1, año_actual - año_publicación + 1)`. Si no hay recuento,
+  se usa solo la relevancia.
+  La CLI avisa qué artículos seleccionados no tienen el dato. Para puntuar todos
+  los candidatos con resumen, el flujo puede hacer más llamadas al modelo que
+  el número final de artículos seleccionados.
 - **`verificar_citas`** comprueba con código que cada DOI citado está entre los
-  artículos resumidos. Si alguno no está, el modelo reescribe la síntesis (como
+  artículos seleccionados. Si alguno no está, el modelo reescribe la síntesis (como
   mucho 2 veces); si después sigue habiendo DOI inventados, se sustituyen por
   «[cita no verificada]» y se avisa. Ningún DOI sin comprobar llega al informe ni
   al BibTeX.
@@ -277,8 +285,8 @@ recuperada.exportar_bibtex("referencias.bib")
 ```
 
 - **`Articulo`:** registro inmutable con título, autores, año, DOI, revista,
-  resumen y número de citas. El DOI se normaliza (sin `https://doi.org/`, en
-  minúsculas) y actúa como identidad.
+  resumen y número de citas, que puede ser `None` si la fuente no lo proporciona.
+  El DOI se normaliza (sin `https://doi.org/`, en minúsculas) y actúa como identidad.
 - **`Biblioteca`:** colección ordenada sin duplicados.
   - `agregar` devuelve `False` si el DOI ya estaba.
   - `obtener(doi)` admite el DOI en cualquier formato.
@@ -291,7 +299,7 @@ recuperada.exportar_bibtex("referencias.bib")
 El JSON es una lista de artículos con `title`, `authors`, `year`, `doi`,
 `journal`, `abstract` y `citations`. Conserva los caracteres Unicode y el orden
 de inserción. Al cargar, `abstract` y `citations` son opcionales y toman los
-valores `""` y `0`.
+valores `""` y `null`.
 
 ### Resumen estructurado con un modelo de lenguaje
 
@@ -384,7 +392,7 @@ Zotero(group_id=7890, api_key="...")  # biblioteca de grupo privada
 - **Clave:** solo hace falta si la biblioteca no es pública. Se envía en una
   cabecera, no en la URL.
 - **Citas:** Zotero no guarda recuentos de citas, así que `citations` es
-  siempre `0`.
+  `null` («no disponible»).
 
 ### PANGAEA
 
@@ -395,7 +403,7 @@ de la Tierra y del medio ambiente. No necesita clave.
   todos los términos. Se acepta cualquier texto, incluidas comillas, barras o
   paréntesis.
 - Como un dataset no tiene revista, el campo `journal` es siempre `"PANGAEA"`.
-- `citations` es siempre `0`: PANGAEA no publica ese dato.
+- `citations` es `null` («no disponible»): PANGAEA no publica ese dato.
 - Los autores llegan como `"Apellido, Nombre"`. Las instituciones conservan su
   nombre completo.
 - También se descartan los datasets a los que les falta título o año.

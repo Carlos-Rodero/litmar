@@ -17,8 +17,8 @@ que sigan sin estar se sustituyen por «[cita no verificada]».
 Diagrama (Mermaid):
 
     flowchart LR
-        START --> planificar --> buscar --> filtrar --> resumir_articulos
-        resumir_articulos --> sintetizar --> verificar_citas
+        START --> planificar --> buscar --> resumir_articulos --> filtrar
+        filtrar --> sintetizar --> verificar_citas
         verificar_citas -- "citas inventadas: reescribir (máx. 2)" --> sintetizar
         verificar_citas -- ok --> END
 
@@ -41,6 +41,7 @@ from litmar.biblioteca import Biblioteca
 from litmar.busqueda import buscar_en_fuentes
 from litmar.fuentes import Fuente
 from litmar.resumen import ResumenArticulo, resumir
+from litmar.seleccion import aviso_citas_no_disponibles, ordenar_articulos
 
 if TYPE_CHECKING:
     from langchain_core.language_models import BaseChatModel
@@ -186,17 +187,12 @@ def crear_flujo(
             avisos += [f"«{consulta}»: {error}" for error in resultado.errors]
         return {"articles": list(encontrados), "warnings": avisos}
 
-    def filtrar(estado: EstadoRevision) -> EstadoRevision:  # código
-        # Los artículos ya llegan sin duplicados (Biblioteca); aquí: con resumen y
-        # los más citados.
-        con_resumen = [a for a in estado["articles"] if a.abstract.strip()]
-        mas_citados = sorted(con_resumen, key=lambda a: a.citations, reverse=True)
-        return {"selected": mas_citados[:n]}
-
     def resumir_articulos(estado: EstadoRevision) -> EstadoRevision:  # LLM
         resumenes: dict[str, ResumenArticulo] = {}
         avisos: list[str] = []
-        for articulo in estado["selected"]:
+        for articulo in estado["articles"]:
+            if not articulo.abstract.strip():
+                continue
             try:
                 resumen = resumir(articulo, estado["question"], modelo)
             except Exception as error:  # un artículo que falla no para la revisión
@@ -205,6 +201,16 @@ def crear_flujo(
             if resumen is not None:
                 resumenes[articulo.doi] = resumen
         return {"summaries": resumenes, "warnings": avisos}
+
+    def filtrar(estado: EstadoRevision) -> EstadoRevision:  # código
+        resumenes = estado.get("summaries", {})
+        relevancias = {doi: resumen.relevance for doi, resumen in resumenes.items()}
+        seleccionados = ordenar_articulos(estado["articles"], relevancias)[:n]
+        cambios: EstadoRevision = {"selected": seleccionados}
+        aviso = aviso_citas_no_disponibles(seleccionados)
+        if aviso:
+            cambios["warnings"] = [aviso]
+        return cambios
 
     def sintetizar(estado: EstadoRevision) -> EstadoRevision:  # LLM
         resumenes = estado.get("summaries", {})
@@ -236,7 +242,7 @@ def crear_flujo(
         return cambios
 
     def verificar_citas(estado: EstadoRevision) -> EstadoRevision:  # código
-        seleccionados = set(estado.get("summaries", {}))
+        seleccionados = {articulo.doi for articulo in estado.get("selected", [])}
         citados = extraer_dois(estado["report"])
         validos = [doi for doi in citados if doi in seleccionados]
         invalidos = [doi for doi in citados if doi not in seleccionados]
@@ -261,16 +267,16 @@ def crear_flujo(
     grafo = StateGraph(EstadoRevision)
     grafo.add_node("planificar", planificar)
     grafo.add_node("buscar", buscar)
-    grafo.add_node("filtrar", filtrar)
     grafo.add_node("resumir_articulos", resumir_articulos)
+    grafo.add_node("filtrar", filtrar)
     grafo.add_node("sintetizar", sintetizar)
     grafo.add_node("verificar_citas", verificar_citas)
 
     grafo.add_edge(START, "planificar")
     grafo.add_edge("planificar", "buscar")
-    grafo.add_edge("buscar", "filtrar")
-    grafo.add_edge("filtrar", "resumir_articulos")
-    grafo.add_edge("resumir_articulos", "sintetizar")
+    grafo.add_edge("buscar", "resumir_articulos")
+    grafo.add_edge("resumir_articulos", "filtrar")
+    grafo.add_edge("filtrar", "sintetizar")
     grafo.add_edge("sintetizar", "verificar_citas")
     grafo.add_conditional_edges(
         "verificar_citas", decidir, {"reescribir": "sintetizar", "fin": END}

@@ -18,7 +18,7 @@ def filas(biblioteca: Biblioteca) -> list[dict[str, object]]:
     return [
         {
             "Año": articulo.year,
-            "Citas": articulo.citations,
+            "Citas": (articulo.citations if articulo.citations is not None else "No disponible"),
             "Autores": "; ".join(articulo.authors),
             "Título": articulo.title,
             "DOI": f"https://doi.org/{articulo.doi}",

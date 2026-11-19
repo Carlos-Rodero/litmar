@@ -182,6 +182,7 @@ src/litmar/
                      `litmar`: carga .env (python-dotenv) y llama a cli.main()
   __main__.py        `python -m litmar`
   articulo.py        Articulo (dataclass frozen+slots), normalizar_doi, apellido
+  seleccion.py       puntuación compartida: relevancia y citas anualizadas
   biblioteca.py      Biblioteca: dedup por DOI, a_bibtex/exportar_bibtex, a_csv,
                      guardar/cargar JSON (guardado atómico, carga con validación)
   busqueda.py        buscar_en_fuentes(): busca en varias fuentes, junta sin
@@ -229,7 +230,8 @@ tests/
 ## 5. Modelo y reglas del dominio
 
 - **`Articulo`**: `title, authors (tuple), year, doi, journal, abstract="",
-  citations=0`. Inmutable. El DOI se normaliza (sin `https://doi.org/` ni
+  citations=None`. Inmutable. `citations=None` significa que la fuente no da
+  el recuento; `0` significa que sí lo da y es cero. El DOI se normaliza (sin `https://doi.org/` ni
   `doi:`, minúsculas, debe empezar por `10.` y tener `/`) y es la **identidad**.
   DOI y al menos un autor son obligatorios: las fuentes **descartan** resultados
   sin ellos. `short_citation` → «García (2021)», «García y López (2021)»,
@@ -259,9 +261,9 @@ errores de red, 429 y 5xx, con espera exponencial (`backoff`), `Retry-After`
 | OpenAlex | `OpenAlex` | `OPENALEX_API_KEY` opcional (Bearer) | `per_page` ≤ 100; `page × per_page` ≤ 10 000; el resumen se reconstruye de `abstract_inverted_index`. `desde`: `filter=publication_year:>AÑO-1` |
 | Crossref | `Crossref` | `CROSSREF_MAILTO` opcional (polite pool) | solo `journal-article`; paginación por cursor con orden explícito. `desde`: `from-pub-date:AÑO` |
 | Europe PMC | `EuropePMC` | ninguna | paginación `cursorMark`; por defecto da prioridad a lo reciente. `desde`: `AND (PUB_YEAR:[AÑO TO 9999])` |
-| arXiv | `Arxiv` | ninguna | Atom XML; 3 s entre páginas; DOI de respaldo `10.48550/arXiv.<id>`. `desde`: `submittedDate:[AÑO01010000 TO …]` |
-| PANGAEA | `Pangaea` | ninguna | datasets; `journal="PANGAEA"`, `citations=0`; Elasticsearch ≤ 10 000. `desde`: `range` sobre `agg-pubYear` |
-| Zotero | `Zotero` | `ZOTERO_USER_ID` **o** `ZOTERO_GROUP_ID` (+ `ZOTERO_API_KEY` si es privada) | `citations=0`; sin id no aparece en la UI. `desde`: la API no filtra, solo `_admite` |
+| arXiv | `Arxiv` | ninguna | Atom XML; 3 s entre páginas; DOI de respaldo `10.48550/arXiv.<id>`; citas no disponibles. `desde`: `submittedDate:[AÑO01010000 TO …]` |
+| PANGAEA | `Pangaea` | ninguna | datasets; `journal="PANGAEA"`, citas no disponibles; Elasticsearch ≤ 10 000. `desde`: `range` sobre `agg-pubYear` |
+| Zotero | `Zotero` | `ZOTERO_USER_ID` **o** `ZOTERO_GROUP_ID` (+ `ZOTERO_API_KEY` si es privada) | citas no disponibles; sin id no aparece en la UI. `desde`: la API no filtra, solo `_admite` |
 
 Las variables están documentadas en `.env.example`. **Para añadir una fuente**:
 subclase de `Fuente` en `fuentes/` (con `desde` y `_admite`), exportarla en

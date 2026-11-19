@@ -36,6 +36,7 @@ class ModeloFalso:
         self.sintesis = []  # los mensajes de cada llamada a sintetizar
         self.resumidos = []  # títulos de los artículos resumidos
         self.falla_en = set()  # títulos cuyo resumen lanza una excepción
+        self.relevancias = {}
 
     def with_structured_output(self, esquema, **opciones):
         return _Estructurado(self, esquema)
@@ -63,7 +64,7 @@ class _Estructurado:
             objective="Objetivo",
             method="Método",
             findings=["Hallazgo"],
-            relevance=4,
+            relevance=self.modelo.relevancias.get(titulo, 4),
             limitations="No consta en el resumen.",
         )
 
@@ -130,9 +131,9 @@ def test_el_grafo_coincide_con_el_diagrama(crear_fuente):
     assert aristas == {
         ("__start__", "planificar"),
         ("planificar", "buscar"),
-        ("buscar", "filtrar"),
-        ("filtrar", "resumir_articulos"),
-        ("resumir_articulos", "sintetizar"),
+        ("buscar", "resumir_articulos"),
+        ("resumir_articulos", "filtrar"),
+        ("filtrar", "sintetizar"),
         ("sintetizar", "verificar_citas"),
         ("verificar_citas", "sintetizar"),  # citas inventadas: reescribir
         ("verificar_citas", "__end__"),
@@ -150,13 +151,13 @@ def test_revision_sin_citas_inventadas(crear_fuente, consultas_hechas):
     assert pasos == [
         ("planificar", "2 consultas"),
         ("buscar", "5 artículos"),
+        ("resumir_articulos", "4 resúmenes"),
         ("filtrar", "3 seleccionados"),
-        ("resumir_articulos", "3 resúmenes"),
         ("sintetizar", "informe (2 citas)"),
         ("verificar_citas", "ok"),
     ]
     assert consultas_hechas == ["posidonia warming", "seagrass heat"]
-    # filtrar: con resumen y los más citados (el de 999 citas no tiene resumen)
+    # filtrar: resumen y puntuación combinada; el más citado no tiene resumen.
     assert [a.doi for a in estado["selected"]] == ["10.1/b", "10.1/c", "10.1/a"]
     assert estado["cited"] == ["10.1/b", "10.1/c"]
     assert estado["rewrites"] == 0
@@ -219,18 +220,27 @@ def test_un_resumen_que_falla_no_para_la_revision(crear_fuente):
 
     _, estado = ejecutar(modelo, crear_fuente)
 
-    assert set(estado["summaries"]) == {"10.1/b", "10.1/a"}
+    assert set(estado["summaries"]) == {"10.1/b", "10.1/a", "10.1/d"}
     assert any("10.1/c" in aviso for aviso in estado["warnings"])
 
 
 def test_citar_un_seleccionado_sin_resumen_tambien_es_invalido(crear_fuente):
-    # El modelo solo ve los artículos resumidos: citar otro es inventar.
+    # El modelo solo ve los seleccionados: citar otro es inventar.
     modelo = ModeloFalso(["Según [doi:10.1/c]."])
     modelo.falla_en = {"C"}
 
     _, estado = ejecutar(modelo, crear_fuente)
 
     assert estado["unverified"] == ["10.1/c"]
+
+
+def test_citar_un_articulo_fuera_del_top_n_es_invalido(crear_fuente):
+    modelo = ModeloFalso(["Según [doi:10.1/d]."])
+
+    _, estado = ejecutar(modelo, crear_fuente, n=1)
+
+    assert [a.doi for a in estado["selected"]] == ["10.1/b"]
+    assert estado["unverified"] == ["10.1/d"]
 
 
 def test_planificar_recorta_a_tres_consultas_sin_repetir(crear_fuente, consultas_hechas):
@@ -246,6 +256,35 @@ def test_n_tiene_un_maximo(crear_fuente):
     _, estado = ejecutar(ModeloFalso(["x"]), crear_fuente, n=500)
 
     assert len(estado["selected"]) == 4  # todos los que tienen resumen (máximo: 10)
+
+
+def test_criterio_combinado_y_aviso_de_citas_no_disponibles(hacer_articulo):
+    articulos = [
+        hacer_articulo(doi="10.1/viejo", year=2010, citations=100, title="Antiguo"),
+        hacer_articulo(doi="10.1/reciente", year=2025, citations=8, title="Reciente"),
+        hacer_articulo(doi="10.1/sin-dato", year=2025, citations=None, title="Sin dato"),
+    ]
+    modelo = ModeloFalso(["x"])
+    modelo.relevancias = {
+        "Título: Antiguo": 2,
+        "Título: Reciente": 4,
+        "Título: Sin dato": 5,
+    }
+
+    _, estado = ejecutar(
+        modelo,
+        lambda nombre: FuenteFalsa(articulos, []),
+        n=3,
+    )
+
+    assert [a.doi for a in estado["selected"]] == [
+        "10.1/sin-dato",
+        "10.1/reciente",
+        "10.1/viejo",
+    ]
+    assert any(
+        "10.1/sin-dato" in aviso and "solo la relevancia" in aviso for aviso in estado["warnings"]
+    )
 
 
 # --- Funciones de apoyo
