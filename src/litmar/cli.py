@@ -152,6 +152,24 @@ def _parser() -> argparse.ArgumentParser:
         help="Abrir la interfaz web en el navegador",
         epilog="Las opciones adicionales se pasan a `streamlit run`, p. ej. --server.port 8600.",
     )
+
+    servir = comandos.add_parser(
+        "servir",
+        help="Arrancar la API web (FastAPI); documentación en /docs",
+        description="Sirve la API de litmar con uvicorn. Ctrl+C para pararla.",
+    )
+    servir.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Dirección en la que escucha (127.0.0.1: solo este ordenador; "
+        "0.0.0.0: también la red, p. ej. en Docker)",
+    )
+    servir.add_argument("--puerto", type=_positivo, default=8000, help="Puerto (8000)")
+    servir.add_argument(
+        "--recargar",
+        action="store_true",
+        help="Reiniciar el servidor al cambiar el código (para desarrollar)",
+    )
     return parser
 
 
@@ -378,6 +396,16 @@ def _lanzar_ui(opciones: list[str]) -> int:
         return 0
 
 
+def _servir(args: argparse.Namespace) -> int:
+    """Arranca la API con uvicorn."""
+    import uvicorn
+
+    # La app se pasa como texto («módulo:variable») y no como objeto: así uvicorn
+    # puede volver a importarla cuando `--recargar` detecta un cambio.
+    uvicorn.run("litmar.api:app", host=args.host, port=args.puerto, reload=args.recargar)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = _parser()
     args, extra = parser.parse_known_args(argv)
@@ -388,6 +416,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.comando == "revisar":
             return _revisar(args)
+        if args.comando == "servir":
+            return _servir(args)
         return _buscar(args) if args.comando == "buscar" else _exportar(args)
     except (OSError, ValueError) as exc:
         print(f"Error: {exc}", file=sys.stderr)

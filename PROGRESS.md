@@ -8,9 +8,10 @@ el registro solo crece (entradas nuevas arriba).
 
 _Actualizado: 2026-11-19._
 
-- **`main`**: al día con `origin/main` en `45de0c3`. Último trabajo: fusión de
-  la PR #15 (felipehcoutinho), selección combinada por relevancia y citas
-  anualizadas, con recuentos no disponibles identificados (D-23).
+- **`main`**: al día con `origin/main`. Último trabajo: la API con FastAPI
+  (Clase 3, encargo 1).
+  Antes: fusión de la PR #15 (felipehcoutinho), selección combinada por
+  relevancia y citas anualizadas (D-23).
 - **Curso**: Clase 1 (*Busca*, 17/11/2026) completa respecto a las
   diapositivas. La siguiente es la Clase 2 (*Lee*), el **18/11/2026**; sus
   diapositivas están en `docs/Clase2.pdf` y su plan, abajo. Se está
@@ -18,8 +19,9 @@ _Actualizado: 2026-11-19._
   Práctica 1, flujo LangGraph, herramientas, agente, pestaña «Revisión»); la
   votación (7) se hace en clase, probados con un modelo real (Anthropic).
   La Clase 3 (*APIs, reproducibilidad y transferencia*, **19/11/2026**) tiene
-  sus diapositivas en `docs/Clase3.pdf` y su plan abajo; no hay nada empezado.
-- **Calidad**: 312 tests pasan, sin red, en ~3 s; `ruff check` y
+  sus diapositivas en `docs/Clase3.pdf` y su plan abajo; hecho el encargo 1
+  (API con FastAPI y `litmar servir`).
+- **Calidad**: 341 tests pasan, sin red, en ~3 s; `ruff check` y
   `ruff format --check` en verde.
 - **PRs abiertas**: ninguna.
 - **Funciona**:
@@ -48,6 +50,10 @@ _Actualizado: 2026-11-19._
   - selección por 70 % de relevancia y 30 % de citas/año ajustadas; si falta el
     recuento, se usa solo la relevancia y se avisa. `citations=None` distingue
     el dato ausente de un recuento real de cero;
+  - API web con FastAPI (`src/litmar/api.py`, D-24): `litmar servir`,
+    `/salud`, `/fuentes`, `/buscar` (varias fuentes, 502 solo si fallan todas)
+    y `/revisiones` (flujo o agente; informe y BibTeX, sin guardar en disco);
+    documentación en `/docs`; sin token;
   - configuración por `.env` (plantilla en `.env.example`; todo opcional salvo
     Zotero).
 
@@ -150,7 +156,7 @@ encargos 3 y 4, Práctica 2, checklist de reproducibilidad) → **03 Cierre**
 (d. 29-34: recapitulación, lluvia de ideas, «del caso de uso al primer
 encargo», cómo seguir).
 
-1. [ ] **API con FastAPI** (diapositiva 9) en `src/litmar/api.py`.
+1. [x] **API con FastAPI** (diapositiva 9; hecho el 19/11, D-24) en `src/litmar/api.py`.
    Prompt: «Expón litmar como API con FastAPI en src/litmar/api.py: GET /salud,
    GET /fuentes, GET /buscar (varias fuentes y año mínimo, con
    buscar_en_fuentes) y POST /revisiones (flujo o agente, con flujo.revisar y
@@ -298,6 +304,29 @@ contra esto.
   proponer su hook `_antes_de_peticion` en `Fuente`.
 
 ## Registro de sesiones
+
+### 2026-11-19 — Sesión 3: API con FastAPI (Clase 3, encargo 1)
+
+- Primero el contrato, como pide la diapositiva 9. El usuario eligió: `/buscar`
+  devuelve un objeto con `errors` (no una lista como la demo de la d. 10),
+  **sin token** y campos JSON en inglés. Detalle y códigos de error en D-24.
+- `src/litmar/api.py` solo traduce HTTP a las funciones que ya había
+  (`buscar_en_fuentes`, `flujo.revisar`, `agente.revisar`, `crear_modelo`);
+  `litmar servir [--host] [--puerto] [--recargar]` en `cli.py`. `uv add
+  fastapi uvicorn` (fastapi 0.165, uvicorn 0.54) como dependencias principales.
+- Los tests destaparon una trampa: FastAPI no pasa el valor por defecto por el
+  `AfterValidator` (llegaba «openalex» a `crear_fuente`); arreglado con
+  `validate_default=True` y anotado en AGENTS.md §9.
+- `tests/test_api.py` (29 tests): 422 (`n=0`, fuente desconocida, Zotero sin
+  configurar, pregunta vacía…), 502 si fallan todas las fuentes o el modelo
+  (sin claves en el mensaje), 503 sin `LITMAR_MODELO`, nada escrito en disco y
+  `litmar servir` con uvicorn falso.
+- Prueba real con `litmar servir`: `/buscar` en OpenAlex y Europe PMC (4
+  artículos), `n=0` → 422, `/docs` carga; `/revisiones` en modo flujo con
+  `n=2` tardó 194 s y devolvió un informe con 2 citas comprobadas y su BibTeX.
+  Los pasos salen en el log de uvicorn. Ojo: resumió 23 artículos para elegir
+  2 (comportamiento de la PR #15; falta comentarlo en la PR).
+- README: sección «API web».
 
 ### 2026-11-19 — Sesión 3: fusión de la PR #15 y repaso de la memoria
 

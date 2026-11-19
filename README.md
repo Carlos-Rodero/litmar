@@ -5,7 +5,8 @@ fuentes en una sola biblioteca. Busca en servicios con API pública, convierte
 cada resultado a un modelo común (`Articulo`), elimina duplicados por DOI y
 exporta el conjunto a BibTeX para usarlo en LaTeX o en un gestor de referencias.
 
-Se puede usar desde la línea de comandos o como librería.
+Se puede usar desde la línea de comandos, con una interfaz web, como API web
+o como librería.
 
 ## Instalación
 
@@ -265,6 +266,41 @@ from litmar.herramientas import HERRAMIENTAS, buscar_articulos
 print(buscar_articulos.invoke({"consulta": "posidonia carbon", "fuente": "europepmc", "n": 3}))
 modelo_con_herramientas = modelo.bind_tools(HERRAMIENTAS)
 ```
+
+## API web
+
+`litmar servir` arranca una API con [FastAPI](https://fastapi.tiangolo.com/): cualquier
+programa (un notebook, una web, otro agente) puede buscar o pedir una revisión por
+HTTP y recibir JSON. Usa las mismas funciones que la CLI y la interfaz web.
+
+```bash
+uv run litmar servir                 # http://127.0.0.1:8000; Ctrl+C para parar
+uv run litmar servir --recargar      # reinicia al cambiar el código (desarrollo)
+uv run litmar servir --host 0.0.0.0 --puerto 8080   # accesible desde la red
+```
+
+En <http://127.0.0.1:8000/docs> hay una página para probar cada ruta.
+
+| Ruta | Qué hace | Errores |
+| --- | --- | --- |
+| `GET /salud` | `{"status": "ok", "version": …}` | — |
+| `GET /fuentes` | Fuentes disponibles: `[{"id": "europepmc", "name": "Europe PMC"}, …]` | — |
+| `GET /buscar` | `consulta`, `fuente` (repetible; `openalex` por defecto), `n` (1–50 por fuente), `desde` (año). Devuelve `{query, articles, errors, failed}` | 422 datos inválidos; 502 si fallan todas las fuentes |
+| `POST /revisiones` | Cuerpo `{question, mode: "flujo"\|"agente", sources, n (1–10), since}`. Devuelve `{question, mode, report, bibtex, cited, queries, warnings}` | 422 datos inválidos; 503 falta el modelo en el `.env`; 502 el modelo falló |
+
+```bash
+curl "http://127.0.0.1:8000/buscar?consulta=posidonia&fuente=openalex&fuente=europepmc&n=2"
+curl -X POST http://127.0.0.1:8000/revisiones -H "Content-Type: application/json" \
+  -d '{"question": "¿Cómo afecta el calentamiento a Posidonia oceanica?", "n": 4}'
+```
+
+- Si una fuente falla, `/buscar` responde 200 con lo de las demás y el motivo en
+  `errors`; solo si fallan todas responde 502.
+- `/revisiones` tarda varios minutos y espera hasta terminar. Devuelve el informe en
+  Markdown y el BibTeX de lo citado, sin guardar nada en disco. En modo agente no se
+  piden aprobaciones. Los pasos se ven en la terminal del servidor.
+- La API no tiene autenticación: está pensada para usarla en tu ordenador o en una red
+  de confianza. Quien pueda llamar a `/revisiones` gasta tu clave del modelo.
 
 ## Uso desde Python
 

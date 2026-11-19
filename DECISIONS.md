@@ -193,3 +193,27 @@ usa solo la relevancia y se avisa. `0` sigue significando cero citas conocidas.
 El flujo calcula la puntuación con código; en modo agente, la herramienta expone
 la tasa y el ajuste, y el prompt pide aplicar la misma regla. Se sustituye
 D-17, que ordenaba por citas totales.
+
+### D-24 · Contrato de la API (FastAPI) — 2026-11-19
+`src/litmar/api.py`: `GET /salud`, `GET /fuentes`, `GET /buscar` y
+`POST /revisiones`, con `buscar_en_fuentes`, `flujo.revisar` y `agente.revisar`
+(sin lógica nueva). Lo eligió el usuario al ver el contrato:
+- **`/buscar` devuelve un objeto** `{query, articles, errors, failed}`, no una
+  lista como en la demo de la diapositiva 10: con una lista no hay dónde decir
+  que una fuente falló. 200 si responde alguna fuente; **502** si fallan todas.
+- **Sin token**, aunque la diapositiva 9 lo pide opcional: la API es para el
+  ordenador propio o una red de confianza. El README avisa de que quien llame a
+  `/revisiones` gasta la clave del modelo. Si hiciera falta, la idea era
+  `LITMAR_API_TOKEN` + `Authorization: Bearer`, comparado con
+  `secrets.compare_digest`.
+- **Campos JSON en inglés** (como `Articulo` y D-2) y parámetros de la URL en
+  español (`consulta`, `fuente`, `n`, `desde`, como la CLI).
+- Errores: **422** datos inválidos (también una fuente desconocida o Zotero sin
+  configurar, comprobado por un validador de Pydantic); **503** si falta el
+  modelo (mensaje de `ErrorDeConfiguracion`); **502** si el modelo falla, solo
+  con el tipo de error, porque el mensaje del proveedor podría llevar la petición.
+- `/revisiones` es **síncrona** (`def`, FastAPI la ejecuta en otro hilo) y
+  responde 200, no 201: no crea nada consultable. El modo agente va sin
+  aprobaciones. No guarda nada en disco.
+- `fastapi` y `uvicorn` son dependencias principales, no un extra, para que la
+  imagen de Docker las tenga sin el grupo `dev`.

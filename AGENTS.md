@@ -134,7 +134,8 @@ del Mar, tres clases, imparte Roberto Bada). Las diapositivas están en `docs/`
     modelos de entrada y salida, códigos de error), luego el código; la API es
     un punto de entrada más, como la CLI y la UI, y reutiliza
     `buscar_en_fuentes`, `flujo.revisar` y `agente.revisar` sin duplicar lógica;
-    errores con código y mensaje claro, nunca con claves; tests con `TestClient`,
+    errores con código y mensaje claro, nunca con claves (la API va sin token,
+    D-24); tests con `TestClient`,
     sin red; la web solo conoce el contrato y usa rutas relativas; en Docker,
     dependencias desde `uv.lock` antes del código, sin grupo `dev`, usuario no
     root y secretos solo al arrancar (`--env-file`, `env_file:`), nunca en la
@@ -156,7 +157,7 @@ del Mar, tres clases, imparte Roberto Bada). Las diapositivas están en `docs/`
 
 ```bash
 uv sync                          # instala todo, incluido el grupo dev (pytest, ruff, streamlit)
-uv run pytest                    # tests (sin red; ~312, ~3 s)
+uv run pytest                    # tests (sin red; ~341, ~3 s)
 uv run ruff check --fix          # lint (reglas E, W, F, I, UP, B; línea de 100)
 uv run ruff format               # formato
 uv run litmar --help             # CLI
@@ -166,6 +167,7 @@ uv run litmar exportar biblioteca.json --bibtex refs.bib
 uv run litmar revisar "pregunta" --modo agente --aprobar   # agente; pide permiso antes de buscar
 uv run litmar revisar "pregunta"  # revisión con LLM (necesita LITMAR_MODELO): informe y BibTeX
                                  # en ejemplos/revisiones/<fecha_hora_pregunta>/ (ignorado en git)
+uv run litmar servir --recargar   # API (FastAPI) en http://127.0.0.1:8000, /docs
 uv run litmar ui                 # interfaz web (Streamlit)
 uv run litmar ui --server.headless true --server.port 8599   # sin navegador ni preguntas
 ```
@@ -190,7 +192,7 @@ src/litmar/
                      mensaje_de_error(): error de una fuente sin la petición
   cli.py             argparse: buscar (--fuente, --desde, --guardar, --bibtex,
                      salida en tabla), exportar, revisar (--modo flujo|agente,
-                     --aprobar), ui
+                     --aprobar), ui, servir (--host, --puerto, --recargar)
   configuracion.py   FUENTES, fuentes_disponibles(), crear_fuente(nombre),
                      id_fuente()/nombre_fuente() («Europe PMC» ↔ «europepmc»)
   agente.py          agente revisor (Deep Agents): crear_agente(), Registro de lo
@@ -210,6 +212,9 @@ src/litmar/
                      InMemoryRateLimiter y ErrorDeConfiguracion si falta algo
   resumen.py         ResumenArticulo (Pydantic) y resumir(articulo, pregunta, modelo)
                      con with_structured_output; sin resumen → None, sin llamar al modelo
+  api.py             FastAPI (D-24): /salud, /fuentes, /buscar, /revisiones;
+                     modelos ArticuloSalida, BusquedaSalida, RevisionEntrada,
+                     RevisionSalida; validador de fuentes (→ 422). Sin token
   ui.py              Streamlit: filas(), app() con pestañas busqueda() y revision();
                      la revisión reutiliza flujo.revisar / agente.revisar
   fuentes/
@@ -361,6 +366,10 @@ en `.env.example`.
 - **`AppTest`**: `st.status(...)` y sus `.text()` aparecen en `app.text`; las
   pestañas no cambian el orden de los widgets (los de «Búsqueda» van primero:
   `multiselect[0]`, los de «Revisión», `multiselect[1]`).
+- **FastAPI no valida los valores por defecto**: un `AfterValidator` (p. ej. el
+  que convierte «openalex» en «OpenAlex») no se aplica al valor por defecto de un
+  `Query` o de un campo Pydantic. Hace falta `validate_default=True`; si no, el
+  nombre sin convertir llega a `crear_fuente` y la fuente «falla».
 - **`Retry-After: 0`** es válido: comprobar con `is None`, no con `or`.
 - **`Biblioteca.guardar`** deja el JSON con permisos `0600` (lo crea
   `NamedTemporaryFile`). Conocido, pendiente.
