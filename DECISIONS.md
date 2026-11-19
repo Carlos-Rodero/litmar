@@ -217,3 +217,21 @@ D-17, que ordenaba por citas totales.
   aprobaciones. No guarda nada en disco.
 - `fastapi` y `uvicorn` son dependencias principales, no un extra, para que la
   imagen de Docker las tenga sin el grupo `dev`.
+
+### D-25 · Web de litmar: un fichero, pregunta propia y Markdown sin librerías — 2026-11-19
+`src/litmar/web/index.html`, servida por la API en `GET /` (fuera de `/docs`:
+no es parte del contrato) y leída del paquete con `importlib.resources`, para
+que funcione igual instalada o en Docker. Solo usa `/fuentes`, `/buscar` y
+`/revisiones`, con rutas relativas; un test lo comprueba. Lo eligió el usuario:
+- **La revisión tiene su propio campo de pregunta** (con modo y número de
+  artículos) y reutiliza las fuentes y el año del formulario de búsqueda, como
+  la pestaña «Revisión» de la UI.
+- **El informe se muestra como Markdown renderizado** con un conversor propio
+  de unas 100 líneas (títulos, párrafos, listas anidadas, tablas, citas, código,
+  énfasis, enlaces y `[doi:…]`). Descartado: una librería desde una CDN (la web
+  dejaría de funcionar sin internet y habría que sanear el HTML) y el texto tal
+  cual en un `<pre>`. El conversor escapa todo el texto antes de dar formato y
+  solo crea enlaces `http(s)`: el informe no puede meter HTML en la página.
+- Los datos de la API se pintan con `textContent`, nunca con `innerHTML`; el
+  BibTeX y el informe se descargan con un `Blob`, sin otra petición. Los 422 se
+  traducen campo a campo; sin JSON (p. ej. un 502 de nginx), «HTTP N».

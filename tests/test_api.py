@@ -293,6 +293,31 @@ def test_la_documentacion_describe_las_rutas():
     assert {"502", "503", "422"} <= set(rutas["/revisiones"]["post"]["responses"])
 
 
+# --- La página web en / ---------------------------------------------------------
+
+
+def test_la_api_sirve_la_pagina_en_la_raiz():
+    respuesta = cliente.get("/")
+
+    assert respuesta.status_code == 200
+    assert respuesta.headers["content-type"].startswith("text/html")
+    assert "<title>litmar</title>" in respuesta.text
+
+
+def test_la_pagina_solo_usa_rutas_del_contrato_y_relativas():
+    import re
+
+    pagina = cliente.get("/").text
+    rutas = set(re.findall(r'pedir\(`?"?(/[a-z]+)', pagina))
+    contrato = set(cliente.get("/openapi.json").json()["paths"])
+
+    assert rutas == {"/fuentes", "/buscar", "/revisiones"}
+    assert rutas <= contrato
+    # Sin la dirección del servidor: funciona en cualquier host y puerto.
+    assert "127.0.0.1" not in pagina and "localhost" not in pagina
+    assert not re.search(r"fetch\(\s*[`'\"]https?:", pagina)
+
+
 # --- litmar servir -----------------------------------------------------------------
 
 

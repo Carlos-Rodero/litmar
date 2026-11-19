@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>litmar</title>
+<!--
+  Página web de litmar: HTML, CSS y JavaScript en un solo fichero, sin npm ni
+  compilación. Solo conoce el contrato de la API (D-24) y usa rutas relativas
+  (/fuentes, /buscar, /revisiones): funciona en cualquier servidor y puerto.
+-->
+<style>
+  :root {
+    --fondo: #f6f7f9; --panel: #ffffff; --texto: #1d2330; --suave: #5b6475;
+    --borde: #d9dde5; --acento: #0b6e8a; --acento-texto: #ffffff;
+    --aviso: #fff6d6; --aviso-borde: #e0b93a; --error: #fde8e8; --error-borde: #d64545;
+    --codigo: #eef1f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fondo: #12151b; --panel: #1b2029; --texto: #e4e8ef; --suave: #9aa3b4;
+      --borde: #323a48; --acento: #4fb3d1; --acento-texto: #0d1117;
+      --aviso: #3a3216; --aviso-borde: #b8962c; --error: #3d1d1d; --error-borde: #e06666;
+      --codigo: #252c38;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--fondo); color: var(--texto);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  header, main { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+  header { padding-top: 24px; }
+  h1 { margin: 0; font-size: 1.8rem; }
+  header p { margin: 4px 0 0; color: var(--suave); }
+  section {
+    background: var(--panel); border: 1px solid var(--borde); border-radius: 10px;
+    padding: 20px; margin: 20px 0;
+  }
+  h2 { margin: 0 0 12px; font-size: 1.25rem; }
+  label { display: block; font-weight: 600; margin-bottom: 4px; }
+  input, select, textarea, button { font: inherit; }
+  input[type=text], input[type=number], textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--borde); border-radius: 6px;
+    background: var(--fondo); color: var(--texto);
+  }
+  textarea { resize: vertical; min-height: 64px; }
+  .fila { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; margin-bottom: 14px; }
+  .fila > div { flex: 1 1 160px; }
+  .fila > .ancho { flex: 3 1 320px; }
+  fieldset { border: none; margin: 0 0 14px; padding: 0; }
+  legend { font-weight: 600; margin-bottom: 4px; padding: 0; }
+  .opciones { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+  .opciones label { display: inline-flex; gap: 6px; align-items: center; font-weight: normal; margin: 0; }
+  button {
+    padding: 9px 18px; border: none; border-radius: 6px; cursor: pointer;
+    background: var(--acento); color: var(--acento-texto); font-weight: 600;
+  }
+  button.secundario { background: transparent; color: var(--acento); border: 1px solid var(--acento); }
+  button:disabled { opacity: .55; cursor: wait; }
+  .nota { color: var(--suave); font-size: .9rem; margin: 6px 0 0; }
+  .mensaje { border-left: 4px solid; border-radius: 6px; padding: 10px 14px; margin: 12px 0; }
+  .mensaje ul { margin: 4px 0 0; padding-left: 20px; }
+  .aviso { background: var(--aviso); border-color: var(--aviso-borde); }
+  .error { background: var(--error); border-color: var(--error-borde); }
+  .estado { color: var(--suave); margin: 12px 0; font-variant-numeric: tabular-nums; }
+  .tabla { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--borde); vertical-align: top; }
+  th { color: var(--suave); font-weight: 600; white-space: nowrap; }
+  td.numero { text-align: right; font-variant-numeric: tabular-nums; }
+  a { color: var(--acento); }
+  .descargas { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+  /* El informe convertido de Markdown */
+  .informe { border-top: 1px solid var(--borde); margin-top: 14px; padding-top: 6px; }
+  .informe h1 { font-size: 1.5rem; margin: 16px 0 8px; }
+  .informe h2 { font-size: 1.25rem; margin: 22px 0 8px; }
+  .informe h3, .informe h4 { font-size: 1.05rem; margin: 18px 0 6px; }
+  .informe p, .informe li { max-width: 75ch; }
+  .informe li { margin: 4px 0; }
+  .informe blockquote { margin: 10px 0; padding: 2px 14px; border-left: 3px solid var(--borde); color: var(--suave); }
+  .informe code { background: var(--codigo); padding: 1px 5px; border-radius: 4px; font-size: .9em; }
+  .informe pre { background: var(--codigo); padding: 12px; border-radius: 6px; overflow-x: auto; }
+  .informe pre code { padding: 0; background: none; }
+  .informe table { margin: 10px 0; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>litmar</h1>
+  <p>Literatura científica de varias fuentes en una sola biblioteca.</p>
+</header>
+
+<main>
+  <div id="error-fuentes" class="mensaje error" hidden></div>
+
+  <!-- Búsqueda: GET /buscar -->
+  <section>
+    <h2>Búsqueda</h2>
+    <form id="form-busqueda">
+      <div class="fila">
+        <div class="ancho">
+          <label for="consulta">Consulta</label>
+          <input id="consulta" type="text" required placeholder="posidonia carbon">
+        </div>
+        <div>
+          <label for="n">Artículos por fuente</label>
+          <input id="n" type="number" min="1" max="50" value="10" required>
+        </div>
+        <div>
+          <label for="desde">Año mínimo</label>
+          <input id="desde" type="number" min="1000" max="2100" placeholder="Cualquiera">
+        </div>
+      </div>
+      <fieldset>
+        <legend>Fuentes</legend>
+        <div id="fuentes" class="opciones"><span class="nota">Cargando fuentes…</span></div>
+      </fieldset>
+      <button id="boton-buscar" type="submit">Buscar</button>
+      <p class="nota">Las fuentes y el año mínimo también se usan en la revisión.</p>
+    </form>
+    <div id="resultado-busqueda"></div>
+  </section>
+
+  <!-- Revisión: POST /revisiones -->
+  <section>
+    <h2>Revisión</h2>
+    <form id="form-revision">
+      <div class="fila">
+        <div class="ancho">
+          <label for="pregunta">Pregunta de investigación</label>
+          <textarea id="pregunta" required
+            placeholder="¿Cómo afecta el calentamiento a las praderas de Posidonia oceanica?"></textarea>
+        </div>
+      </div>
+      <div class="fila">
+        <fieldset>
+          <legend>Modo</legend>
+          <div class="opciones">
+            <label><input type="radio" name="modo" value="flujo" checked> Flujo (pasos fijos)</label>
+            <label><input type="radio" name="modo" value="agente"> Agente (decide el modelo)</label>
+          </div>
+        </fieldset>
+        <div>
+          <label for="n-revision">Artículos para el informe</label>
+          <input id="n-revision" type="number" min="1" max="10" value="6" required>
+        </div>
+      </div>
+      <div class="mensaje aviso">
+        Una revisión tarda <strong>varios minutos</strong>: el servidor busca, lee los
+        resúmenes con un modelo de lenguaje y escribe el informe. No cierres la página.
+      </div>
+      <button id="boton-revisar" type="submit">Revisar</button>
+    </form>
+    <div id="resultado-revision"></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+// --- Peticiones a la API -------------------------------------------------------
+
+// Nombres de los campos del contrato tal como los ve el usuario en la página.
+const ETIQUETAS = {
+  consulta: "Consulta", fuente: "Fuentes", n: "Número de artículos", desde: "Año mínimo",
+  question: "Pregunta", mode: "Modo", sources: "Fuentes", since: "Año mínimo",
+};
+
+// Hace la petición y devuelve el JSON; si algo falla, lanza un Error con un
+// mensaje para el usuario (o una lista de mensajes, en `error.detalles`).
+async function pedir(ruta, opciones) {
+  let respuesta;
+  try {
+    respuesta = await fetch(ruta, opciones);
+  } catch {
+    throw new Error("No se pudo conectar con la API. ¿Está arrancado «litmar servir»?");
+  }
+  let datos = null;
+  try {
+    datos = await respuesta.json();
+  } catch {
+    // Sin JSON: p. ej. una página de error de un proxy (nginx) delante de la API.
+  }
+  if (respuesta.ok && datos !== null) return datos;
+  throw errorDeLaApi(respuesta.status, datos);
+}
+
+function errorDeLaApi(codigo, datos) {
+  const detalle = datos && datos.detail;
+  if (codigo === 422 && Array.isArray(detalle)) {
+    // FastAPI explica cada dato inválido: dónde (loc) y qué pasa (msg).
+    const error = new Error("Hay datos que la API no acepta:");
+    error.detalles = detalle.map((d) => {
+      const campo = d.loc.filter((parte) => parte !== "query" && parte !== "body")[0];
+      const mensaje = String(d.msg).replace(/^Value error, /, "");
+      return `${ETIQUETAS[campo] || campo}: ${mensaje}`;
+    });
+    return error;
+  }
+  if (typeof detalle === "string") return new Error(detalle);
+  if (codigo === 502 || codigo === 504) {
+    return new Error(`El servidor respondió HTTP ${codigo}: la API no está disponible o tardó demasiado.`);
+  }
+  return new Error(`El servidor respondió HTTP ${codigo}.`);
+}
+
+// --- Utilidades de la página ---------------------------------------------------
+
+const $ = (id) => document.getElementById(id);
+
+function elemento(etiqueta, texto, clase) {
+  const nodo = document.createElement(etiqueta);
+  if (texto !== undefined) nodo.textContent = texto; // textContent: nunca se interpreta como HTML
+  if (clase) nodo.className = clase;
+  return nodo;
+}
+
+function mensaje(clase, titulo, lineas = []) {
+  const caja = elemento("div", undefined, `mensaje ${clase}`);
+  caja.append(elemento("div", titulo));
+  if (lineas.length) {
+    const lista = elemento("ul");
+    for (const linea of lineas) lista.append(elemento("li", linea));
+    caja.append(lista);
+  }
+  return caja;
+}
+
+function mostrarError(contenedor, error) {
+  contenedor.replaceChildren(mensaje("error", error.message, error.detalles || []));
+}
+
+function enlaceDoi(doi) {
+  const enlace = elemento("a", doi);
+  enlace.href = `https://doi.org/${doi}`;
+  enlace.target = "_blank";
+  enlace.rel = "noopener";
+  return enlace;
+}
+
+function botonDescarga(texto, contenido, nombre, tipo) {
+  const boton = elemento("button", texto, "secundario");
+  boton.type = "button";
+  boton.addEventListener("click", () => {
+    // El fichero se crea en el navegador: no hace falta otra petición.
+    const url = URL.createObjectURL(new Blob([contenido], { type: tipo }));
+    const enlace = document.createElement("a");
+    enlace.href = url;
+    enlace.download = nombre;
+    enlace.click();
+    URL.revokeObjectURL(url);
+  });
+  return boton;
+}
+
+function fuentesElegidas() {
+  return [...document.querySelectorAll("#fuentes input:checked")].map((casilla) => casilla.value);
+}
+
+function anioMinimo() {
+  const valor = $("desde").value.trim();
+  return valor === "" ? null : Number(valor);
+}
+
+// --- GET /fuentes ---------------------------------------------------------------
+
+async function cargarFuentes() {
+  try {
+    const fuentes = await pedir("/fuentes");
+    const casillas = fuentes.map(({ id, name }) => {
+      const etiqueta = elemento("label");
+      const casilla = document.createElement("input");
+      casilla.type = "checkbox";
+      casilla.value = id;
+      casilla.checked = id === "openalex" || id === "europepmc";
+      etiqueta.append(casilla, ` ${name}`);
+      return etiqueta;
+    });
+    $("fuentes").replaceChildren(...casillas);
+  } catch (error) {
+    $("fuentes").replaceChildren();
+    mostrarError($("error-fuentes"), error);
+    $("error-fuentes").hidden = false;
+  }
+}
+
+// --- GET /buscar ----------------------------------------------------------------
+
+async function buscar(evento) {
+  evento.preventDefault();
+  const destino = $("resultado-busqueda");
+  const fuentes = fuentesElegidas();
+  if (!fuentes.length) {
+    destino.replaceChildren(mensaje("aviso", "Elige al menos una fuente."));
+    return;
+  }
+  const parametros = new URLSearchParams({ consulta: $("consulta").value, n: $("n").value });
+  for (const fuente of fuentes) parametros.append("fuente", fuente); // ?fuente=a&fuente=b
+  if (anioMinimo() !== null) parametros.set("desde", anioMinimo());
+
+  $("boton-buscar").disabled = true;
+  destino.replaceChildren(elemento("p", "Buscando…", "estado"));
+  try {
+    const datos = await pedir(`/buscar?${parametros}`);
+    mostrarArticulos(destino, datos);
+  } catch (error) {
+    mostrarError(destino, error);
+  } finally {
+    $("boton-buscar").disabled = false;
+  }
+}
+
+function mostrarArticulos(destino, datos) {
+  const partes = [];
+  if (datos.errors.length) {
+    partes.push(mensaje("aviso", "Algunas fuentes no respondieron; se muestran las demás:", datos.errors));
+  }
+  partes.push(elemento("p", `${datos.articles.length} artículos (sin DOI repetidos).`, "estado"));
+  if (datos.articles.length) {
+    const tabla = elemento("table");
+    const cabecera = elemento("tr");
+    for (const titulo of ["Título", "Autores", "Año", "Revista", "Citas", "DOI"]) {
+      cabecera.append(elemento("th", titulo));
+    }
+    tabla.append(elemento("thead"), elemento("tbody"));
+    tabla.tHead.append(cabecera);
+    for (const articulo of datos.articles) {
+      const fila = elemento("tr");
+      const autores = articulo.authors.slice(0, 3).join("; ") + (articulo.authors.length > 3 ? " et al." : "");
+      fila.append(
+        elemento("td", articulo.title),
+        elemento("td", autores),
+        elemento("td", articulo.year, "numero"),
+        elemento("td", articulo.journal),
+        // null: la fuente no da el recuento (no es lo mismo que 0).
+        elemento("td", articulo.citations === null ? "—" : articulo.citations, "numero"),
+      );
+      const doi = elemento("td");
+      doi.append(enlaceDoi(articulo.doi));
+      fila.append(doi);
+      tabla.tBodies[0].append(fila);
+    }
+    const envoltorio = elemento("div", undefined, "tabla");
+    envoltorio.append(tabla);
+    partes.push(envoltorio);
+  }
+  destino.replaceChildren(...partes);
+}
+
+// --- POST /revisiones -----------------------------------------------------------
+
+async function revisar(evento) {
+  evento.preventDefault();
+  const destino = $("resultado-revision");
+  const fuentes = fuentesElegidas();
+  if (!fuentes.length) {
+    destino.replaceChildren(mensaje("aviso", "Elige al menos una fuente en «Búsqueda»."));
+    return;
+  }
+  const cuerpo = {
+    question: $("pregunta").value,
+    mode: document.querySelector("input[name=modo]:checked").value,
+    sources: fuentes,
+    n: Number($("n-revision").value),
+    since: anioMinimo(),
+  };
+
+  // Mientras espera: botón desactivado y un reloj, porque la API no informa del avance.
+  $("boton-revisar").disabled = true;
+  const estado = elemento("p", "", "estado");
+  destino.replaceChildren(estado);
+  const inicio = Date.now();
+  const actualizar = () => {
+    const segundos = Math.floor((Date.now() - inicio) / 1000);
+    const reloj = `${Math.floor(segundos / 60)}:${String(segundos % 60).padStart(2, "0")}`;
+    estado.textContent = `Revisando en modo ${cuerpo.mode}… ${reloj} (suele tardar varios minutos)`;
+  };
+  actualizar();
+  const temporizador = setInterval(actualizar, 1000);
+
+  try {
+    const datos = await pedir("/revisiones", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cuerpo),
+    });
+    mostrarRevision(destino, datos, Date.now() - inicio);
+  } catch (error) {
+    mostrarError(destino, error);
+  } finally {
+    clearInterval(temporizador);
+    $("boton-revisar").disabled = false;
+  }
+}
+
+function mostrarRevision(destino, datos, milisegundos) {
+  const partes = [];
+  const minutos = (milisegundos / 60000).toFixed(1).replace(".", ",");
+  partes.push(elemento("p", `Revisión terminada en ${minutos} min: ${datos.cited.length} artículos citados.`, "estado"));
+  if (datos.warnings.length) partes.push(mensaje("aviso", "Avisos de la revisión:", datos.warnings));
+  const descargas = elemento("div", undefined, "descargas");
+  descargas.append(
+    botonDescarga(`Descargar BibTeX (${datos.cited.length} citados)`, datos.bibtex, "revision.bib", "application/x-bibtex"),
+    botonDescarga("Descargar informe (Markdown)", datos.report, "revision.md", "text/markdown"),
+  );
+  partes.push(descargas);
+  const informe = elemento("article", undefined, "informe");
+  informe.innerHTML = markdownAHtml(datos.report); // seguro: el conversor escapa el texto
+  partes.push(informe);
+  destino.replaceChildren(...partes);
+}
+
+// --- Markdown → HTML ------------------------------------------------------------
+//
+// Conversor pequeño, sin librerías, para lo que escribe la revisión: títulos,
+// párrafos, listas, tablas, citas, código, énfasis, enlaces y [doi:…]. Todo el
+// texto se escapa antes de darle formato, así que el informe no puede meter
+// HTML ni scripts en la página; los enlaces solo pueden ser http(s).
+
+function escapar(texto) {
+  return texto.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function enlace(url, texto) {
+  return `<a href="${url}" target="_blank" rel="noopener">${texto}</a>`;
+}
+
+// Código, enlaces [texto](url), citas [doi:…] y URL sueltas; el resto, con énfasis.
+const EN_LINEA = /`([^`]+)`|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\[doi:\s*(10\.[^\s\]]+)\]|(https?:\/\/[^\s<]*[^\s<.,;:)\]])/g;
+
+function enLinea(texto) {
+  const seguro = escapar(texto);
+  let html = "";
+  let desde = 0;
+  for (const m of seguro.matchAll(EN_LINEA)) {
+    html += enfasis(seguro.slice(desde, m.index));
+    if (m[1] !== undefined) html += `<code>${m[1]}</code>`;
+    else if (m[2] !== undefined) html += enlace(m[3], enfasis(m[2]));
+    else if (m[4] !== undefined) html += enlace(`https://doi.org/${m[4]}`, `[doi:${m[4]}]`);
+    else html += enlace(m[5], m[5]);
+    desde = m.index + m[0].length;
+  }
+  return html + enfasis(seguro.slice(desde));
+}
+
+function enfasis(texto) {
+  return texto
+    .replace(/\*\*(?=\S)(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/__(?=\S)(.+?)__/g, "<strong>$1</strong>")
+    .replace(/(^|[^\w*])\*(?=\S)(.+?)\*(?!\w)/g, "$1<em>$2</em>")
+    .replace(/(^|[^\w])_(?=\S)(.+?)_(?!\w)/g, "$1<em>$2</em>");
+}
+
+const TITULO = /^(#{1,6})\s+(.*?)\s*#*$/;
+const ELEMENTO_LISTA = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
+const SEPARADOR = /^(-{3,}|\*{3,}|_{3,})$/;
+const FILA_TABLA = /^\|.*\|$/;
+const LINEA_TABLA = /^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?$/;
+
+function celdas(linea) {
+  return linea.trim().replace(/^\||\|$/g, "").split("|").map((celda) => enLinea(celda.trim()));
+}
+
+function markdownAHtml(markdown) {
+  const lineas = markdown.replace(/\r\n?/g, "\n").split("\n");
+  const html = [];
+  let i = 0;
+  while (i < lineas.length) {
+    const linea = lineas[i];
+    const limpia = linea.trim();
+    let m;
+    if (limpia === "") {
+      i++;
+    } else if (limpia.startsWith("```")) { // bloque de código
+      const codigo = [];
+      for (i++; i < lineas.length && !lineas[i].trim().startsWith("```"); i++) codigo.push(lineas[i]);
+      i++;
+      html.push(`<pre><code>${escapar(codigo.join("\n"))}</code></pre>`);
+    } else if ((m = limpia.match(TITULO))) {
+      const nivel = m[1].length;
+      html.push(`<h${nivel}>${enLinea(m[2])}</h${nivel}>`);
+      i++;
+    } else if (SEPARADOR.test(limpia)) {
+      html.push("<hr>");
+      i++;
+    } else if (FILA_TABLA.test(limpia) && i + 1 < lineas.length && LINEA_TABLA.test(lineas[i + 1].trim())) {
+      const cabecera = celdas(limpia).map((c) => `<th>${c}</th>`).join("");
+      const filas = [];
+      for (i += 2; i < lineas.length && FILA_TABLA.test(lineas[i].trim()); i++) {
+        filas.push(`<tr>${celdas(lineas[i]).map((c) => `<td>${c}</td>`).join("")}</tr>`);
+      }
+      html.push(`<div class="tabla"><table><thead><tr>${cabecera}</tr></thead><tbody>${filas.join("")}</tbody></table></div>`);
+    } else if (limpia.startsWith(">")) { // cita
+      const texto = [];
+      for (; i < lineas.length && lineas[i].trim().startsWith(">"); i++) texto.push(lineas[i].trim().replace(/^>\s?/, ""));
+      html.push(`<blockquote>${markdownAHtml(texto.join("\n"))}</blockquote>`);
+    } else if (ELEMENTO_LISTA.test(linea)) {
+      const [codigo, fin] = lista(lineas, i);
+      html.push(codigo);
+      i = fin;
+    } else { // párrafo: líneas seguidas hasta una vacía o un bloque distinto
+      const texto = [];
+      for (; i < lineas.length; i++) {
+        const otra = lineas[i].trim();
+        if (otra === "" || TITULO.test(otra) || SEPARADOR.test(otra) || ELEMENTO_LISTA.test(lineas[i]) || otra.startsWith(">") || otra.startsWith("```")) break;
+        texto.push(otra);
+      }
+      html.push(`<p>${enLinea(texto.join(" "))}</p>`);
+    }
+  }
+  return html.join("\n");
+}
+
+// Una lista (con sus sublistas, por sangría) a partir de la línea `inicio`.
+// Devuelve el HTML y la primera línea que ya no es de la lista.
+function lista(lineas, inicio) {
+  const [, sangria, marca] = lineas[inicio].match(ELEMENTO_LISTA);
+  const etiqueta = /\d/.test(marca) ? "ol" : "ul";
+  const elementos = [];
+  let i = inicio;
+  while (i < lineas.length) {
+    const m = lineas[i].match(ELEMENTO_LISTA);
+    if (m && m[1].length < sangria.length) break; // vuelve a una lista de fuera
+    if (m && m[1].length > sangria.length) { // sublista dentro del último elemento
+      const [sublista, fin] = lista(lineas, i);
+      elementos[elementos.length - 1] += sublista;
+      i = fin;
+      continue;
+    }
+    if (m) {
+      elementos.push(enLinea(m[3]));
+    } else if (lineas[i].trim() !== "" && /^\s+/.test(lineas[i]) && elementos.length) {
+      elementos[elementos.length - 1] += " " + enLinea(lineas[i].trim()); // continuación
+    } else {
+      break;
+    }
+    i++;
+  }
+  return [`<${etiqueta}>${elementos.map((e) => `<li>${e}</li>`).join("")}</${etiqueta}>`, i];
+}
+
+// --- Arranque -------------------------------------------------------------------
+
+$("form-busqueda").addEventListener("submit", buscar);
+$("form-revision").addEventListener("submit", revisar);
+cargarFuentes();
+</script>
+</body>
+</html>

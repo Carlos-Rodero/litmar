@@ -5,16 +5,19 @@ No hay lógica nueva: `/buscar` usa `buscar_en_fuentes` y `/revisiones`,
 entrada, validados por FastAPI antes de llegar al código), qué sale (modelos de
 salida, siempre con la misma forma) y qué código HTTP corresponde a cada error.
 
-Arranque: `litmar servir` (ver `cli.py`); documentación interactiva en `/docs`.
+Arranque: `litmar servir` (ver `cli.py`); documentación interactiva en `/docs` y
+una página web que usa la API en `/` (`web/index.html`).
 """
 
 from __future__ import annotations
 
 import logging
 from importlib.metadata import version
+from importlib.resources import files
 from typing import Annotated, Literal
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import HTMLResponse
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from litmar import agente, flujo, llm
@@ -122,6 +125,15 @@ app = FastAPI(
     description="Busca literatura científica en varias fuentes y escribe revisiones que "
     "solo citan artículos reales.",
 )
+
+
+# Fuera del esquema: es la página para personas, no parte del contrato de la API.
+@app.get("/", include_in_schema=False)
+def pagina() -> HTMLResponse:
+    """La web de litmar (HTML, CSS y JavaScript en un fichero) que usa esta API."""
+    # Se lee del paquete instalado, no de la carpeta del repositorio: así funciona
+    # igual con `uv run`, con `pip install` y dentro de Docker.
+    return HTMLResponse(files("litmar").joinpath("web/index.html").read_text(encoding="utf-8"))
 
 
 @app.get("/salud")

@@ -19,9 +19,9 @@ _Actualizado: 2026-11-19._
   Práctica 1, flujo LangGraph, herramientas, agente, pestaña «Revisión»); la
   votación (7) se hace en clase, probados con un modelo real (Anthropic).
   La Clase 3 (*APIs, reproducibilidad y transferencia*, **19/11/2026**) tiene
-  sus diapositivas en `docs/Clase3.pdf` y su plan abajo; hecho el encargo 1
-  (API con FastAPI y `litmar servir`).
-- **Calidad**: 341 tests pasan, sin red, en ~3 s; `ruff check` y
+  sus diapositivas en `docs/Clase3.pdf` y su plan abajo; hechos los encargos 1
+  (API con FastAPI y `litmar servir`) y 2 (web en `/`).
+- **Calidad**: 343 tests pasan, sin red, en ~3 s; `ruff check` y
   `ruff format --check` en verde.
 - **PRs abiertas**: ninguna.
 - **Funciona**:
@@ -54,6 +54,9 @@ _Actualizado: 2026-11-19._
     `/salud`, `/fuentes`, `/buscar` (varias fuentes, 502 solo si fallan todas)
     y `/revisiones` (flujo o agente; informe y BibTeX, sin guardar en disco);
     documentación en `/docs`; sin token;
+  - web en `/` (`src/litmar/web/index.html`, D-25): búsqueda, tabla con DOI
+    enlazados, revisión con el informe en Markdown renderizado y descarga del
+    BibTeX; sin npm, rutas relativas;
   - configuración por `.env` (plantilla en `.env.example`; todo opcional salvo
     Zotero).
 
@@ -193,7 +196,8 @@ encargo», cómo seguir).
      está). Sección en el README.
    - Demo (d. 10): `uv run litmar servir --recargar`, `/docs`, `curl
      "http://127.0.0.1:8000/buscar?consulta=posidonia&n=2"`.
-2. [ ] **Web en HTML y JavaScript** (diapositiva 13) en
+2. [x] **Web en HTML y JavaScript** (diapositiva 13; hecho el 19/11, D-25; falta
+   probarla en un navegador) en
    `src/litmar/web/index.html`. Prompt: «Crea una página web en
    src/litmar/web/index.html (HTML, CSS y JavaScript, sin npm ni compilación)
    que use nuestra API: búsqueda con fuentes y año mínimo, tabla con los DOI
@@ -304,6 +308,25 @@ contra esto.
   proponer su hook `_antes_de_peticion` en `Fuente`.
 
 ## Registro de sesiones
+
+### 2026-11-19 — Sesión 3: web en HTML y JavaScript (Clase 3, encargo 2)
+
+- Antes del código, las rutas que usaría: `/fuentes` (casillas), `/buscar`
+  (`URLSearchParams`, `fuente` repetido) y `/revisiones` (JSON). El usuario
+  eligió un campo propio para la pregunta y el informe con el Markdown
+  renderizado (D-25).
+- `src/litmar/web/index.html` (un fichero, ~500 líneas) y `GET /` en `api.py`,
+  fuera del esquema. Aviso fijo de que la revisión tarda minutos; mientras,
+  botón desactivado y un reloj. Errores en rojo según el código (422 campo a
+  campo, 502/503 con el `detail`, sin conexión, respuesta sin JSON).
+- Comprobado: 343 tests (dos nuevos: `/` devuelve la página; solo usa rutas
+  del contrato y ninguna dirección absoluta); `uv build` mete
+  `litmar/web/index.html` en el wheel; el conversor de Markdown, con Node,
+  sobre el informe real del 19/11 y casos difíciles (tablas, sublistas,
+  `snake_case`, `<script>` escapado, `javascript:` sin enlazar).
+- **Sin probar en un navegador**: Claude in Chrome no estaba disponible en la
+  sesión. Pendiente: abrir `litmar servir` → `/`, buscar, revisar y mirar F12 >
+  Red.
 
 ### 2026-11-19 — Sesión 3: API con FastAPI (Clase 3, encargo 1)
 

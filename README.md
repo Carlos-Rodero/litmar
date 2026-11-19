@@ -279,7 +279,12 @@ uv run litmar servir --recargar      # reinicia al cambiar el código (desarroll
 uv run litmar servir --host 0.0.0.0 --puerto 8080   # accesible desde la red
 ```
 
-En <http://127.0.0.1:8000/docs> hay una página para probar cada ruta.
+En <http://127.0.0.1:8000/> hay una **página web** que usa la API: búsqueda con
+fuentes y año mínimo, tabla con los DOI enlazados y una revisión que muestra el
+informe y deja descargar el BibTeX. Es un solo fichero (`src/litmar/web/index.html`,
+HTML, CSS y JavaScript, sin npm ni compilación) y solo usa rutas relativas
+(`/fuentes`, `/buscar`, `/revisiones`), así que funciona en cualquier servidor y
+puerto. En <http://127.0.0.1:8000/docs> hay una página para probar cada ruta.
 
 | Ruta | Qué hace | Errores |
 | --- | --- | --- |

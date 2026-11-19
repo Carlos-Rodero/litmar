@@ -157,7 +157,7 @@ del Mar, tres clases, imparte Roberto Bada). Las diapositivas están en `docs/`
 
 ```bash
 uv sync                          # instala todo, incluido el grupo dev (pytest, ruff, streamlit)
-uv run pytest                    # tests (sin red; ~341, ~3 s)
+uv run pytest                    # tests (sin red; ~343, ~3 s)
 uv run ruff check --fix          # lint (reglas E, W, F, I, UP, B; línea de 100)
 uv run ruff format               # formato
 uv run litmar --help             # CLI
@@ -214,7 +214,10 @@ src/litmar/
                      con with_structured_output; sin resumen → None, sin llamar al modelo
   api.py             FastAPI (D-24): /salud, /fuentes, /buscar, /revisiones;
                      modelos ArticuloSalida, BusquedaSalida, RevisionEntrada,
-                     RevisionSalida; validador de fuentes (→ 422). Sin token
+                     RevisionSalida; validador de fuentes (→ 422). Sin token.
+                     GET / sirve web/index.html del paquete
+  web/index.html     web (D-25): HTML+CSS+JS sin npm; usa /fuentes, /buscar y
+                     /revisiones con rutas relativas; conversor de Markdown propio
   ui.py              Streamlit: filas(), app() con pestañas busqueda() y revision();
                      la revisión reutiliza flujo.revisar / agente.revisar
   fuentes/
