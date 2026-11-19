@@ -6,22 +6,20 @@ el registro solo crece (entradas nuevas arriba).
 
 ## Estado actual
 
-_Actualizado: 2026-11-18._
+_Actualizado: 2026-11-19._
 
-- **`main`**: al día con `Sapere-IA/litmar/main` y `origin/main` en
-  `db90288`. Último trabajo: selección combinada por relevancia y citas
-  anualizadas, con recuentos no disponibles identificados.
+- **`main`**: al día con `origin/main` en `45de0c3`. Último trabajo: fusión de
+  la PR #15 (felipehcoutinho), selección combinada por relevancia y citas
+  anualizadas, con recuentos no disponibles identificados (D-23).
 - **Curso**: Clase 1 (*Busca*, 17/11/2026) completa respecto a las
   diapositivas. La siguiente es la Clase 2 (*Lee*), el **18/11/2026**; sus
   diapositivas están en `docs/Clase2.pdf` y su plan, abajo. Se está
   construyendo como ensayo, encargo a encargo: hechos los pasos 1 a 6, el 8 y el 9 (`.env.example`, `resumir`, `llm.py`,
   Práctica 1, flujo LangGraph, herramientas, agente, pestaña «Revisión»); la
   votación (7) se hace en clase, probados con un modelo real (Anthropic).
-- **Calidad**: 312 tests pasan sin red; `ruff check`, `ruff format --check` y
-  `uv lock --check` en verde.
   La Clase 3 (*APIs, reproducibilidad y transferencia*, **19/11/2026**) tiene
   sus diapositivas en `docs/Clase3.pdf` y su plan abajo; no hay nada empezado.
-- **Calidad**: 299 tests pasan, sin red, en ~1,5 s; `ruff check` y
+- **Calidad**: 312 tests pasan, sin red, en ~3 s; `ruff check` y
   `ruff format --check` en verde.
 - **PRs abiertas**: ninguna.
 - **Funciona**:
@@ -301,6 +299,17 @@ contra esto.
 
 ## Registro de sesiones
 
+### 2026-11-19 — Sesión 3: fusión de la PR #15 y repaso de la memoria
+
+- El usuario fusionó la PR #15 (`45de0c3`) resolviendo conflictos en
+  `PROGRESS.md` y `AGENTS.md` a mano. El código quedó bien (312 tests, ruff en
+  verde), pero `PROGRESS.md` no: la línea de Calidad del alumno partía el punto
+  «Curso», había dos líneas de Calidad, el commit de `main` era `db90288` y el
+  registro llevaba notas locales del alumno (rama sin enviar, `stash@{0}`). Se
+  arregló «Estado actual», se quitó la entrada del `stash` y se rehízo la de la
+  PR. Lección: al integrar PRs de alumnos, sus cambios en `PROGRESS.md`
+  describen su máquina; hay que reescribirlos para el repositorio (§11).
+
 ### 2026-11-18 — Selección por relevancia y citas anualizadas
 
 - D-23 sustituye el orden por citas totales (D-17): se combina 70 % de
@@ -313,21 +322,10 @@ contra esto.
 - El flujo resume todos los candidatos con resumen antes de escoger los N, por
   lo que puede hacer más llamadas al modelo. En modo agente, las herramientas
   exponen la tasa/ajuste y el prompt pide la misma puntuación.
-- Preparado para PR en la rama local `feat/citation-aware-selection`; el commit
-  no se ha enviado.
+- Escrito por felipehcoutinho en su fork (rama `feat/citation-aware-selection`,
+  `c3a87c9`) y enviado como PR #15.
 - Validación: 312 tests, Ruff, formato y lockfile en verde.
 
-### 2026-11-18 — Sincronización con `Sapere-IA/litmar/main`
-
-- Se actualizó `main` hasta `db90288` (cuatro commits; coincide con
-  `origin/main`), incluyendo el arreglo de aprobaciones paralelas y la pestaña
-  «Revisión».
-- Al reaplicar cambios locales staged hubo solapamientos con esas
-  implementaciones. Se eligió upstream como versión autoritativa; el trabajo
-  local completo se conserva en `stash@{0}` por si hay que recuperar alguna
-  diferencia.
-- Validación: 299 tests; `ruff check`, `ruff format --check` y `uv lock --check`
-  pasan.
 ### 2026-11-18 — Sesión 2: diapositivas de la Clase 3
 
 - Añadido `docs/Clase3.pdf` (*APIs, reproducibilidad y transferencia*,

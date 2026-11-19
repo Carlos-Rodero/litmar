@@ -156,7 +156,7 @@ del Mar, tres clases, imparte Roberto Bada). Las diapositivas están en `docs/`
 
 ```bash
 uv sync                          # instala todo, incluido el grupo dev (pytest, ruff, streamlit)
-uv run pytest                    # tests (sin red; ~299, ~2 s)
+uv run pytest                    # tests (sin red; ~312, ~3 s)
 uv run ruff check --fix          # lint (reglas E, W, F, I, UP, B; línea de 100)
 uv run ruff format               # formato
 uv run litmar --help             # CLI
@@ -415,7 +415,10 @@ en `.env.example`.
    Anota esas propuestas en «Pendiente de terceros» de `PROGRESS.md`.
 6. Para PRs duplicadas: ciérralas (`gh pr close N --comment …`) explicando por
    qué se eligió otra e invitando a aportar sus mejoras sobre la existente.
-7. Tras el formateo con ruff (D-13), una PR basada en el `main` anterior puede
+7. Si la PR toca `PROGRESS.md`, sus cambios describen la máquina del alumno
+   (rama local, `stash`, commit de su `main`): al resolver conflictos, deja un
+   solo «Estado actual» cierto para el repositorio y quita lo que solo valía allí.
+8. Tras el formateo con ruff (D-13), una PR basada en el `main` anterior puede
    chocar solo por formato: pide al alumno `uv run ruff format`, o fórmatealo tú
    al integrar.
 
